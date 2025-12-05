@@ -1,7 +1,7 @@
 // Weather API Service
 // Replace with your actual weather API (OpenWeatherMap, WeatherAPI, etc.)
 
-const WEATHER_API_KEY = 'YOUR_API_KEY_HERE'; // Get from openweathermap.org
+const WEATHER_API_KEY = '3b68aee2c658dab8e74321d43dfa68e3'; // Get from openweathermap.org
 const WEATHER_API_BASE = 'https://api.openweathermap.org/data/2.5';
 
 export interface WeatherData {

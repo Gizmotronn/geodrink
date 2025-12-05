@@ -1,8 +1,9 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { getDarkMode, getTempUnit, setDarkMode, setTempUnit } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 export default function SettingsScreen() {
@@ -10,6 +11,28 @@ export default function SettingsScreen() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [hapticEnabled, setHapticEnabled] = useState(true);
   const [celsiusEnabled, setCelsiusEnabled] = useState(true);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    const unit = await getTempUnit();
+    const darkMode = await getDarkMode();
+    setCelsiusEnabled(unit === 'C');
+    setDarkModeEnabled(darkMode);
+  };
+
+  const toggleTempUnit = async (value: boolean) => {
+    setCelsiusEnabled(value);
+    await setTempUnit(value ? 'C' : 'F');
+  };
+
+  const toggleDarkMode = async (value: boolean) => {
+    setDarkModeEnabled(value);
+    await setDarkMode(value);
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -38,7 +61,7 @@ export default function SettingsScreen() {
             </View>
             <Switch
               value={celsiusEnabled}
-              onValueChange={setCelsiusEnabled}
+              onValueChange={toggleTempUnit}
               trackColor={{ false: '#767577', true: '#4A90E2' }}
             />
           </View>
@@ -78,6 +101,28 @@ export default function SettingsScreen() {
             <Switch
               value={hapticEnabled}
               onValueChange={setHapticEnabled}
+              trackColor={{ false: '#767577', true: '#4A90E2' }}
+            />
+          </View>
+        </View>
+
+        {/* Appearance */}
+        <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>Appearance</ThemedText>
+          
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
+              <Ionicons name="moon-outline" size={24} color="#4A90E2" />
+              <View style={styles.settingText}>
+                <ThemedText style={styles.settingLabel}>Dark Mode</ThemedText>
+                <ThemedText style={styles.settingDescription}>
+                  Invert all colors (experimental)
+                </ThemedText>
+              </View>
+            </View>
+            <Switch
+              value={darkModeEnabled}
+              onValueChange={toggleDarkMode}
               trackColor={{ false: '#767577', true: '#4A90E2' }}
             />
           </View>

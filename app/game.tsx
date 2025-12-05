@@ -2,9 +2,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { City, getRandomCity } from '@/data/cities';
 import { getCurrentTemperature } from '@/services/weather';
+import { celsiusToFahrenheit, fahrenheitToCelsius, getTempUnit, updateGameStats } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 interface CityData extends City {
@@ -16,18 +17,58 @@ export default function GameScreen() {
   const { mode } = useLocalSearchParams<{ mode: string }>();
   const [cityData, setCityData] = useState<CityData | null>(null);
   const [userGuess, setUserGuess] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [gameState, setGameState] = useState<'playing' | 'revealed'>('playing');
   const [score, setScore] = useState({ correct: 0, incorrect: 0 });
+  const [tempUnit, setTempUnit] = useState<'C' | 'F'>('C');
+  const [timer, setTimer] = useState(0);
+  const [timeBonus, setTimeBonus] = useState<number | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    loadNewCity();
+    initGame();
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
   }, []);
+
+  const initGame = async () => {
+    await loadTempUnit();
+    await loadNewCity();
+  };
+
+  const loadTempUnit = async () => {
+    const unit = await getTempUnit();
+    setTempUnit(unit);
+  };
+
+  const startTimer = () => {
+    startTimeRef.current = Date.now();
+    setTimer(0);
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setTimer(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 100);
+  };
+
+  const stopTimer = (): number => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+    return (Date.now() - startTimeRef.current) / 1000;
+  };
 
   const loadNewCity = async () => {
     setLoading(true);
     setGameState('playing');
     setUserGuess('');
+    setTimeBonus(null);
     
     try {
       const randomCity = getRandomCity();
@@ -37,6 +78,7 @@ export default function GameScreen() {
         ...randomCity,
         temperature,
       });
+      startTimer();
     } catch {
       Alert.alert('Error', 'Failed to load city data. Please try again.');
     } finally {
@@ -44,7 +86,7 @@ export default function GameScreen() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!userGuess || !cityData) return;
 
     const guess = parseFloat(userGuess);
@@ -53,8 +95,28 @@ export default function GameScreen() {
       return;
     }
 
-    const difference = Math.abs(guess - cityData.temperature);
-    const isCorrect = difference <= 2;
+    const timeInSeconds = stopTimer();
+    
+    // Always normalize to Celsius for comparison and storage
+    const actualTempCelsius = cityData.temperature;
+    const guessTempCelsius = tempUnit === 'F' ? fahrenheitToCelsius(guess) : guess;
+    
+    const differenceCelsius = Math.abs(guessTempCelsius - actualTempCelsius);
+    
+    // Correct threshold: 2°C or 6°F (6°F difference = 3.33°C difference)
+    const threshold = tempUnit === 'F' ? (6 * 5/9) : 2;
+    const isCorrect = differenceCelsius <= threshold;
+
+    // Calculate time bonus (only for party mode)
+    let bonus = 0;
+    if (mode === 'party') {
+      if (timeInSeconds <= 2) {
+        bonus = 25;
+      } else if (timeInSeconds <= 5) {
+        bonus = 10;
+      }
+    }
+    setTimeBonus(bonus);
 
     setGameState('revealed');
 
@@ -63,26 +125,40 @@ export default function GameScreen() {
     } else {
       setScore(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
     }
+
+    // Save stats
+    await updateGameStats(differenceCelsius, timeInSeconds);
   };
 
   const getResultMessage = () => {
     if (!cityData || !userGuess) return '';
     
     const guess = parseFloat(userGuess);
-    const difference = Math.abs(guess - cityData.temperature);
-    const isCorrect = difference <= 2;
+    const actualTempCelsius = cityData.temperature;
+    const guessTempCelsius = tempUnit === 'F' ? fahrenheitToCelsius(guess) : guess;
+    const differenceCelsius = Math.abs(guessTempCelsius - actualTempCelsius);
+    
+    // Calculate difference in display unit (for Fahrenheit, just show the absolute difference between F values)
+    const actualTempDisplay = tempUnit === 'F' ? celsiusToFahrenheit(actualTempCelsius) : actualTempCelsius;
+    const differenceDisplay = Math.abs(guess - actualTempDisplay);
+    
+    // Correct threshold: 2°C or 6°F (6°F difference = 3.33°C difference)
+    const threshold = tempUnit === 'F' ? (6 * 5/9) : 2;
+    const isCorrect = differenceCelsius <= threshold;
 
+    const bonusText = timeBonus ? ` (+${timeBonus}% time bonus!)` : '';
+    
     if (mode === 'party') {
       if (isCorrect) {
-        return '🎉 Within 2°C! Everyone else drinks!';
+        return `🎉 Within ${tempUnit === 'F' ? '6°F' : '2°C'}! Everyone else drinks!${bonusText}`;
       } else {
-        return '😅 More than 2°C off. You drink!';
+        return `😅 More than ${tempUnit === 'F' ? '6°F' : '2°C'} off. You drink!`;
       }
     } else {
       if (isCorrect) {
-        return '✅ Correct! Within 2°C!';
+        return `✅ Correct! Within ${tempUnit === 'F' ? '6°F' : '2°C'}!${bonusText}`;
       } else {
-        return `❌ Wrong by ${difference.toFixed(1)}°C`;
+        return `❌ Wrong by ${differenceDisplay.toFixed(1)}°${tempUnit}`;
       }
     }
   };
@@ -135,6 +211,14 @@ export default function GameScreen() {
         <ThemedText style={styles.question}>
           What&apos;s the current temperature?
         </ThemedText>
+        {gameState === 'playing' && (
+          <View style={styles.timerContainer}>
+            <Ionicons name="timer-outline" size={16} color="#666" />
+            <ThemedText style={styles.timerText}>{timer}s</ThemedText>
+            {timer <= 2 && <ThemedText style={styles.bonusText}>+25% bonus!</ThemedText>}
+            {timer > 2 && timer <= 5 && <ThemedText style={styles.bonusText}>+10% bonus</ThemedText>}
+          </View>
+        )}
       </View>
 
       {/* Input or Result */}
@@ -149,7 +233,7 @@ export default function GameScreen() {
             placeholderTextColor="#999"
             autoFocus
           />
-          <ThemedText style={styles.unitLabel}>°C</ThemedText>
+          <ThemedText style={styles.unitLabel}>°{tempUnit}</ThemedText>
         </View>
       ) : (
         <View style={styles.resultContainer}>
@@ -157,12 +241,16 @@ export default function GameScreen() {
           <View style={styles.temperatureComparison}>
             <View style={styles.tempItem}>
               <ThemedText style={styles.tempLabel}>Your Guess</ThemedText>
-              <ThemedText style={styles.tempValue}>{userGuess}°C</ThemedText>
+              <ThemedText style={styles.tempValue}>{userGuess}°{tempUnit}</ThemedText>
             </View>
             <Ionicons name="arrow-forward" size={24} color="#666" />
             <View style={styles.tempItem}>
               <ThemedText style={styles.tempLabel}>Actual</ThemedText>
-              <ThemedText style={styles.tempValue}>{cityData?.temperature.toFixed(1)}°C</ThemedText>
+              <ThemedText style={styles.tempValue}>
+                {tempUnit === 'C' 
+                  ? cityData?.temperature.toFixed(1) 
+                  : celsiusToFahrenheit(cityData?.temperature || 0).toFixed(1)}°{tempUnit}
+              </ThemedText>
             </View>
           </View>
         </View>
@@ -369,5 +457,25 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
     opacity: 0.7,
+  },
+  timerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(74, 144, 226, 0.1)',
+    borderRadius: 8,
+  },
+  timerText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  bonusText: {
+    fontSize: 12,
+    color: '#50C878',
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
