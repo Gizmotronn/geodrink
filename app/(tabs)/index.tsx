@@ -1,20 +1,30 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { getRandomFunFact } from "@/data/funFacts";
 import type { GameStats } from "@/utils/storage";
 import { getGameStats, getTempUnit, setTempUnit } from "@/utils/storage";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const router = useRouter();
   const [tempUnit, setTempUnitState] = useState<'C' | 'F'>('C');
   const [stats, setStats] = useState<GameStats | null>(null);
+  const [funFact, setFunFact] = useState<string>('');
 
   useEffect(() => {
     loadSettings();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Load a new fun fact each time the screen comes into focus
+      setFunFact(getRandomFunFact());
+    }, [])
+  );
 
   const loadSettings = async () => {
     const unit = await getTempUnit();
@@ -31,7 +41,8 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} bounces={false}>
       <View style={styles.header}>
         <ThemedText type="title" style={styles.title}>
           GeoDrink
@@ -51,7 +62,7 @@ export default function HomeScreen() {
 
       <View style={styles.globeContainer}>
         <View style={styles.globe}>
-          <Ionicons name="globe-outline" size={120} color="#4A90E2" />
+          <Ionicons name="earth" size={100} color="#4A90E2" />
         </View>
         <ThemedText style={styles.globeLabel}>Geography</ThemedText>
       </View>
@@ -104,13 +115,13 @@ export default function HomeScreen() {
           <View style={styles.statRow}>
             <View style={styles.statItem}>
               <ThemedText style={styles.statValue}>
-                {stats.averageScore.toFixed(2)}°
+                {Math.round(stats.averageScore)}°
               </ThemedText>
               <ThemedText style={styles.statLabel}>Avg Difference</ThemedText>
             </View>
             <View style={styles.statItem}>
               <ThemedText style={styles.statValue}>
-                {stats.timeWeightedScore.toFixed(2)}°
+                {Math.round(stats.timeWeightedScore)}°
               </ThemedText>
               <ThemedText style={styles.statLabel}>Time-Weighted</ThemedText>
             </View>
@@ -131,10 +142,11 @@ export default function HomeScreen() {
       <View style={styles.funFactContainer}>
         <ThemedText style={styles.funFactLabel}>Fun Fact</ThemedText>
         <ThemedText style={styles.funFact}>
-          The hottest temperature ever recorded on Earth was 56.7°C in Death Valley, California!
+          {funFact}
         </ThemedText>
       </View>
       </ScrollView>
+      </SafeAreaView>
     </ThemedView>
   );
 };
@@ -143,32 +155,38 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  safeArea: {
+    flex: 1,
+  },
   scrollContent: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 100,
   },
   header: {
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 20,
+    marginTop: 0,
+    marginBottom: 15,
+    paddingTop: 5,
   },
   title: {
-    fontSize: 42,
+    fontSize: 36,
     fontWeight: 'bold',
     marginBottom: 5,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     opacity: 0.7,
   },
   tempToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 20,
     backgroundColor: 'rgba(74, 144, 226, 0.15)',
-    marginTop: 10,
+    marginTop: 8,
   },
   tempToggleText: {
     fontSize: 16,
@@ -176,7 +194,7 @@ const styles = StyleSheet.create({
     color: '#4A90E2',
   },
   leaderboardContainer: {
-    marginVertical: 20,
+    marginVertical: 15,
     padding: 15,
     borderRadius: 12,
     backgroundColor: 'rgba(80, 200, 120, 0.1)',
@@ -211,12 +229,12 @@ const styles = StyleSheet.create({
   },
   globeContainer: {
     alignItems: 'center',
-    marginVertical: 30,
+    marginVertical: 20,
   },
   globe: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
     backgroundColor: 'rgba(74, 144, 226, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -224,16 +242,16 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(74, 144, 226, 0.3)',
   },
   globeLabel: {
-    marginTop: 15,
-    fontSize: 18,
+    marginTop: 12,
+    fontSize: 16,
     opacity: 0.6,
   },
   modesContainer: {
-    gap: 15,
-    marginBottom: 30,
+    gap: 12,
+    marginBottom: 20,
   },
   modeButton: {
-    paddingVertical: 20,
+    paddingVertical: 16,
     paddingHorizontal: 30,
     borderRadius: 15,
     alignItems: 'center',
@@ -261,7 +279,7 @@ const styles = StyleSheet.create({
   bottomButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginVertical: 20,
+    marginVertical: 15,
   },
   infoButton: {
     flexDirection: 'row',

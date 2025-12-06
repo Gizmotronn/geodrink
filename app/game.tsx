@@ -1,12 +1,15 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useTheme } from '@/contexts/ThemeContext';
 import { City, getRandomCity } from '@/data/cities';
+import { loadSounds, playCorrectSound, playWrongSound, unloadSounds } from '@/services/audio';
 import { getCurrentTemperature } from '@/services/weather';
 import { celsiusToFahrenheit, fahrenheitToCelsius, getTempUnit, updateGameStats } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface CityData extends City {
   temperature: number;
@@ -14,12 +17,15 @@ interface CityData extends City {
 
 export default function GameScreen() {
   const router = useRouter();
+  const { isDark } = useTheme();
   const { mode } = useLocalSearchParams<{ mode: string }>();
   const [cityData, setCityData] = useState<CityData | null>(null);
   const [userGuess, setUserGuess] = useState('');
   const [loading, setLoading] = useState(true);
-  const [gameState, setGameState] = useState<'playing' | 'revealed'>('playing');
+  const [gameState, setGameState] = useState<'playing' | 'revealed' | 'roundComplete'>('playing');
   const [score, setScore] = useState({ correct: 0, incorrect: 0 });
+  const [currentCityIndex, setCurrentCityIndex] = useState(1);
+  const [totalCities] = useState(10); // 10 cities per round for single player
   const [tempUnit, setTempUnit] = useState<'C' | 'F'>('C');
   const [timer, setTimer] = useState(0);
   const [timeBonus, setTimeBonus] = useState<number | null>(null);
@@ -28,10 +34,12 @@ export default function GameScreen() {
 
   useEffect(() => {
     initGame();
+    loadSounds(); // Load sound effects
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
       }
+      unloadSounds(); // Clean up sound effects
     };
   }, []);
 
@@ -65,6 +73,12 @@ export default function GameScreen() {
   };
 
   const loadNewCity = async () => {
+    // Check if we've completed 10 cities in single player mode
+    if (mode === 'classic' && currentCityIndex > totalCities) {
+      setGameState('roundComplete');
+      return;
+    }
+
     setLoading(true);
     setGameState('playing');
     setUserGuess('');
@@ -76,7 +90,7 @@ export default function GameScreen() {
       
       setCityData({
         ...randomCity,
-        temperature,
+        temperature: Math.round(temperature),
       });
       startTimer();
     } catch {
@@ -122,12 +136,32 @@ export default function GameScreen() {
 
     if (isCorrect) {
       setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
+      playCorrectSound(); // Play correct answer sound
     } else {
       setScore(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
+      playWrongSound(); // Play wrong answer sound
     }
 
     // Save stats
     await updateGameStats(differenceCelsius, timeInSeconds);
+  };
+
+  const handleNextCity = () => {
+    if (mode === 'classic') {
+      setCurrentCityIndex(prev => prev + 1);
+    }
+    loadNewCity();
+  };
+
+  const handleContinueRound = () => {
+    setScore({ correct: 0, incorrect: 0 });
+    setCurrentCityIndex(1);
+    setGameState('playing');
+    loadNewCity();
+  };
+
+  const handleExitToHome = () => {
+    router.push('/');
   };
 
   const getResultMessage = () => {
@@ -139,7 +173,7 @@ export default function GameScreen() {
     const differenceCelsius = Math.abs(guessTempCelsius - actualTempCelsius);
     
     // Calculate difference in display unit (for Fahrenheit, just show the absolute difference between F values)
-    const actualTempDisplay = tempUnit === 'F' ? celsiusToFahrenheit(actualTempCelsius) : actualTempCelsius;
+    const actualTempDisplay = tempUnit === 'F' ? Math.round(celsiusToFahrenheit(actualTempCelsius)) : actualTempCelsius;
     const differenceDisplay = Math.abs(guess - actualTempDisplay);
     
     // Correct threshold: 2°C or 6°F (6°F difference = 3.33°C difference)
@@ -158,7 +192,7 @@ export default function GameScreen() {
       if (isCorrect) {
         return `✅ Correct! Within ${tempUnit === 'F' ? '6°F' : '2°C'}!${bonusText}`;
       } else {
-        return `❌ Wrong by ${differenceDisplay.toFixed(1)}°${tempUnit}`;
+        return `❌ Wrong by ${Math.round(differenceDisplay)}°${tempUnit}`;
       }
     }
   };
@@ -172,8 +206,81 @@ export default function GameScreen() {
     );
   }
 
+  // Round Complete Screen
+  if (gameState === 'roundComplete') {
+    return (
+      <ThemedView style={styles.container}>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            contentContainerStyle={styles.completeScrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.completeContainer}>
+              <Ionicons name="trophy" size={80} color="#FFD700" style={styles.trophyIcon} />
+              <ThemedText style={styles.completeTitle}>Round Complete!</ThemedText>
+              
+              <View style={styles.finalScoreContainer}>
+                <ThemedText style={styles.finalScoreLabel}>Final Score</ThemedText>
+                <View style={styles.finalScoreRow}>
+                  <View style={styles.finalScoreItem}>
+                    <Ionicons name="checkmark-circle" size={40} color="#50C878" />
+                    <ThemedText style={styles.finalScoreValue}>{score.correct}</ThemedText>
+                    <ThemedText style={styles.finalScoreText}>Correct</ThemedText>
+                  </View>
+                  <View style={styles.finalScoreDivider} />
+                  <View style={styles.finalScoreItem}>
+                    <Ionicons name="close-circle" size={40} color="#FF6B6B" />
+                    <ThemedText style={styles.finalScoreValue}>{score.incorrect}</ThemedText>
+                    <ThemedText style={styles.finalScoreText}>Wrong</ThemedText>
+                  </View>
+                </View>
+                <View style={styles.accuracyContainer}>
+                  <ThemedText style={styles.accuracyLabel}>Accuracy</ThemedText>
+                  <ThemedText style={styles.accuracyValue}>
+                    {Math.round((score.correct / totalCities) * 100)}%
+                  </ThemedText>
+                </View>
+              </View>
+
+              <View style={styles.completeButtonsContainer}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.continueButton,
+                    pressed && styles.buttonPressed,
+                  ]}
+                  onPress={handleContinueRound}
+                >
+                  <Ionicons name="refresh" size={24} color="#FFF" />
+                  <ThemedText style={styles.continueButtonText}>Play Another Round</ThemedText>
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.exitButton,
+                    pressed && styles.buttonPressed,
+                  ]}
+                  onPress={handleExitToHome}
+                >
+                  <Ionicons name="home" size={24} color="#4A90E2" />
+                  <ThemedText style={styles.exitButtonText}>Exit to Home</ThemedText>
+                </Pressable>
+              </View>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+
   return (
     <ThemedView style={styles.container}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
@@ -195,6 +302,12 @@ export default function GameScreen() {
           <ThemedText style={styles.scoreLabel}>Wrong</ThemedText>
           <ThemedText style={styles.scoreValue}>{score.incorrect}</ThemedText>
         </View>
+        {mode === 'classic' && (
+          <View style={styles.scoreItem}>
+            <ThemedText style={styles.scoreLabel}>Progress</ThemedText>
+            <ThemedText style={styles.scoreValue}>{currentCityIndex - 1}/{totalCities}</ThemedText>
+          </View>
+        )}
       </View>
 
       {/* City Display */}
@@ -225,10 +338,19 @@ export default function GameScreen() {
       {gameState === 'playing' ? (
         <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: isDark ? '#FFFFFF' : '#000000' }]}
             value={userGuess}
-            onChangeText={setUserGuess}
-            keyboardType="numeric"
+            onChangeText={(text) => {
+              // Only allow whole numbers (positive and negative)
+              const filtered = text.replace(/[^0-9-]/g, '');
+              // Prevent multiple minus signs and ensure minus is only at start
+              if (filtered === '-' || (filtered.startsWith('-') && !filtered.slice(1).includes('-') && /^-?\d*$/.test(filtered))) {
+                setUserGuess(filtered);
+              } else if (/^\d*$/.test(filtered)) {
+                setUserGuess(filtered);
+              }
+            }}
+            keyboardType="number-pad"
             placeholder="Enter temperature"
             placeholderTextColor="#999"
             autoFocus
@@ -248,8 +370,8 @@ export default function GameScreen() {
               <ThemedText style={styles.tempLabel}>Actual</ThemedText>
               <ThemedText style={styles.tempValue}>
                 {tempUnit === 'C' 
-                  ? cityData?.temperature.toFixed(1) 
-                  : celsiusToFahrenheit(cityData?.temperature || 0).toFixed(1)}°{tempUnit}
+                  ? cityData?.temperature 
+                  : Math.round(celsiusToFahrenheit(cityData?.temperature || 0))}°{tempUnit}
               </ThemedText>
             </View>
           </View>
@@ -273,9 +395,11 @@ export default function GameScreen() {
         ) : (
           <Pressable
             style={({ pressed }) => [styles.nextButton, pressed && styles.buttonPressed]}
-            onPress={loadNewCity}
+            onPress={handleNextCity}
           >
-            <ThemedText style={styles.buttonText}>Next City</ThemedText>
+            <ThemedText style={styles.buttonText}>
+              {mode === 'classic' && currentCityIndex <= totalCities ? `Next City (${currentCityIndex}/${totalCities})` : 'Next City'}
+            </ThemedText>
             <Ionicons name="arrow-forward" size={20} color="#FFF" />
           </Pressable>
         )}
@@ -289,6 +413,8 @@ export default function GameScreen() {
           </ThemedText>
         </View>
       )}
+        </ScrollView>
+      </SafeAreaView>
     </ThemedView>
   );
 }
@@ -296,14 +422,27 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  completeScrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    paddingBottom: 40,
+    flexGrow: 1,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 20,
+    marginTop: 0,
+    marginBottom: 15,
+    paddingTop: 5,
   },
   backButton: {
     padding: 8,
@@ -318,8 +457,8 @@ const styles = StyleSheet.create({
   scoreContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 30,
-    paddingVertical: 15,
+    marginBottom: 20,
+    paddingVertical: 12,
     backgroundColor: 'rgba(74, 144, 226, 0.1)',
     borderRadius: 10,
   },
@@ -327,38 +466,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scoreLabel: {
-    fontSize: 14,
+    fontSize: 13,
     opacity: 0.7,
-    marginBottom: 5,
+    marginBottom: 4,
   },
   scoreValue: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#4A90E2',
   },
   cityContainer: {
     alignItems: 'center',
-    marginVertical: 30,
-    padding: 20,
+    marginVertical: 20,
+    padding: 15,
     backgroundColor: 'rgba(74, 144, 226, 0.05)',
     borderRadius: 15,
   },
   cityName: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginTop: 10,
+    marginTop: 8,
   },
   countryName: {
-    fontSize: 18,
+    fontSize: 16,
     opacity: 0.7,
-    marginTop: 5,
+    marginTop: 4,
   },
   questionContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   question: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '500',
   },
   inputContainer: {
@@ -366,64 +505,67 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    marginBottom: 40,
+    marginBottom: 25,
   },
   input: {
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: 'bold',
     textAlign: 'center',
     borderBottomWidth: 3,
     borderBottomColor: '#4A90E2',
     minWidth: 120,
-    paddingVertical: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    includeFontPadding: false,
   },
   unitLabel: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '500',
     opacity: 0.7,
   },
   resultContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 25,
   },
   resultMessage: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
+    paddingHorizontal: 10,
   },
   temperatureComparison: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 20,
-    padding: 20,
+    gap: 15,
+    padding: 15,
     backgroundColor: 'rgba(128, 128, 128, 0.1)',
-    borderRadius: 15,
+    borderRadius: 12,
   },
   tempItem: {
     alignItems: 'center',
   },
   tempLabel: {
-    fontSize: 14,
+    fontSize: 12,
     opacity: 0.7,
-    marginBottom: 5,
+    marginBottom: 4,
   },
   tempValue: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
   },
   buttonContainer: {
-    marginBottom: 20,
+    marginBottom: 15,
   },
   submitButton: {
     backgroundColor: '#4A90E2',
-    paddingVertical: 18,
+    paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   nextButton: {
     backgroundColor: '#50C878',
-    paddingVertical: 18,
+    paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
     flexDirection: 'row',
@@ -477,5 +619,122 @@ const styles = StyleSheet.create({
     color: '#50C878',
     fontWeight: '600',
     marginLeft: 8,
+  },
+  completeContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trophyIcon: {
+    marginTop: 20,
+  },
+  completeTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 30,
+    lineHeight: 40,
+    paddingTop: 5,
+  },
+  finalScoreContainer: {
+    width: '100%',
+    backgroundColor: 'rgba(74, 144, 226, 0.1)',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 30,
+  },
+  finalScoreLabel: {
+    fontSize: 20,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 28,
+    paddingTop: 3,
+  },
+  finalScoreRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  finalScoreItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  finalScoreDivider: {
+    width: 1,
+    height: 60,
+    backgroundColor: 'rgba(128, 128, 128, 0.3)',
+    marginHorizontal: 10,
+  },
+  finalScoreValue: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    marginTop: 8,
+    lineHeight: 44,
+    paddingTop: 4,
+  },
+  finalScoreText: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginTop: 4,
+    lineHeight: 20,
+    paddingTop: 2,
+  },
+  accuracyContainer: {
+    alignItems: 'center',
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(128, 128, 128, 0.2)',
+  },
+  accuracyLabel: {
+    fontSize: 16,
+    opacity: 0.7,
+    marginBottom: 8,
+    lineHeight: 22,
+    paddingTop: 2,
+  },
+  accuracyValue: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#4A90E2',
+    lineHeight: 48,
+    paddingTop: 4,
+  },
+  completeButtonsContainer: {
+    width: '100%',
+    gap: 15,
+  },
+  continueButton: {
+    backgroundColor: '#4A90E2',
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  continueButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  exitButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: '#4A90E2',
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  exitButtonText: {
+    color: '#4A90E2',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });

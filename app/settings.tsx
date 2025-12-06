@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { getDarkMode, getTempUnit, setDarkMode, setTempUnit } from '@/utils/storage';
+import { useTheme } from '@/contexts/ThemeContext';
+import { getTempUnit, setTempUnit } from '@/utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -8,10 +9,10 @@ import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { isDark, toggleDarkMode } = useTheme();
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [hapticEnabled, setHapticEnabled] = useState(true);
   const [celsiusEnabled, setCelsiusEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -19,19 +20,12 @@ export default function SettingsScreen() {
 
   const loadSettings = async () => {
     const unit = await getTempUnit();
-    const darkMode = await getDarkMode();
     setCelsiusEnabled(unit === 'C');
-    setDarkModeEnabled(darkMode);
   };
 
   const toggleTempUnit = async (value: boolean) => {
     setCelsiusEnabled(value);
     await setTempUnit(value ? 'C' : 'F');
-  };
-
-  const toggleDarkMode = async (value: boolean) => {
-    setDarkModeEnabled(value);
-    await setDarkMode(value);
   };
 
   return (
@@ -121,7 +115,7 @@ export default function SettingsScreen() {
               </View>
             </View>
             <Switch
-              value={darkModeEnabled}
+              value={isDark}
               onValueChange={toggleDarkMode}
               trackColor={{ false: '#767577', true: '#4A90E2' }}
             />

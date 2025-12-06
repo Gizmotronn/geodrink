@@ -1,4 +1,4 @@
-import { getDarkMode } from '@/utils/storage';
+import { getDarkMode, setDarkMode } from '@/utils/storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 interface ThemeContextType {
@@ -25,8 +25,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setIsDark(darkMode);
   };
 
-  const toggleDarkMode = () => {
-    setIsDark(!isDark);
+  const toggleDarkMode = async () => {
+    const newValue = !isDark;
+    setIsDark(newValue);
+    await setDarkMode(newValue);
   };
 
   return (
