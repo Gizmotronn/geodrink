@@ -8,7 +8,7 @@ import { celsiusToFahrenheit, fahrenheitToCelsius, getTempUnit, updateGameStats 
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface CityData extends City {
@@ -25,7 +25,7 @@ export default function GameScreen() {
   const [gameState, setGameState] = useState<'playing' | 'revealed' | 'roundComplete'>('playing');
   const [score, setScore] = useState({ correct: 0, incorrect: 0 });
   const [currentCityIndex, setCurrentCityIndex] = useState(1);
-  const [totalCities] = useState(10); // 10 cities per round for single player
+  const [totalCities] = useState(10);
   const [tempUnit, setTempUnit] = useState<'C' | 'F'>('C');
   const [timer, setTimer] = useState(0);
   const [timeBonus, setTimeBonus] = useState<number | null>(null);
@@ -34,12 +34,12 @@ export default function GameScreen() {
 
   useEffect(() => {
     initGame();
-    loadSounds(); // Load sound effects
+    loadSounds();
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
       }
-      unloadSounds(); // Clean up sound effects
+      unloadSounds();
     };
   }, []);
 
@@ -73,7 +73,6 @@ export default function GameScreen() {
   };
 
   const loadNewCity = async () => {
-    // Check if we've completed 10 cities in single player mode
     if (mode === 'classic' && currentCityIndex > totalCities) {
       setGameState('roundComplete');
       return;
@@ -111,17 +110,14 @@ export default function GameScreen() {
 
     const timeInSeconds = stopTimer();
     
-    // Always normalize to Celsius for comparison and storage
     const actualTempCelsius = cityData.temperature;
     const guessTempCelsius = tempUnit === 'F' ? fahrenheitToCelsius(guess) : guess;
     
     const differenceCelsius = Math.abs(guessTempCelsius - actualTempCelsius);
     
-    // Correct threshold: 2°C or 6°F (6°F difference = 3.33°C difference)
     const threshold = tempUnit === 'F' ? (6 * 5/9) : 2;
     const isCorrect = differenceCelsius <= threshold;
 
-    // Calculate time bonus (only for party mode)
     let bonus = 0;
     if (mode === 'party') {
       if (timeInSeconds <= 2) {
@@ -132,31 +128,46 @@ export default function GameScreen() {
     }
     setTimeBonus(bonus);
 
-    setGameState('revealed');
-
+    // Update score first
     if (isCorrect) {
       setScore(prev => ({ ...prev, correct: prev.correct + 1 }));
-      playCorrectSound(); // Play correct answer sound
+      playCorrectSound();
     } else {
       setScore(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
-      playWrongSound(); // Play wrong answer sound
+      playWrongSound();
     }
 
-    // Save stats
     await updateGameStats(differenceCelsius, timeInSeconds);
+
+    // If this is the last city in classic mode, end the round immediately
+    if (mode === 'classic' && currentCityIndex >= totalCities) {
+      setGameState('roundComplete');
+    } else {
+      setGameState('revealed');
+    }
   };
 
   const handleNextCity = () => {
     if (mode === 'classic') {
-      setCurrentCityIndex(prev => prev + 1);
+      // Only allow advancing if not at the end
+      if (currentCityIndex < totalCities) {
+        setCurrentCityIndex(prev => prev + 1);
+        loadNewCity();
+      } else {
+        setGameState('roundComplete');
+      }
+    } else {
+      loadNewCity();
     }
-    loadNewCity();
   };
 
   const handleContinueRound = () => {
     setScore({ correct: 0, incorrect: 0 });
     setCurrentCityIndex(1);
     setGameState('playing');
+    setCityData(null);
+    setUserGuess('');
+    setTimeBonus(null);
     loadNewCity();
   };
 
@@ -172,11 +183,9 @@ export default function GameScreen() {
     const guessTempCelsius = tempUnit === 'F' ? fahrenheitToCelsius(guess) : guess;
     const differenceCelsius = Math.abs(guessTempCelsius - actualTempCelsius);
     
-    // Calculate difference in display unit (for Fahrenheit, just show the absolute difference between F values)
     const actualTempDisplay = tempUnit === 'F' ? Math.round(celsiusToFahrenheit(actualTempCelsius)) : actualTempCelsius;
     const differenceDisplay = Math.abs(guess - actualTempDisplay);
     
-    // Correct threshold: 2°C or 6°F (6°F difference = 3.33°C difference)
     const threshold = tempUnit === 'F' ? (6 * 5/9) : 2;
     const isCorrect = differenceCelsius <= threshold;
 
@@ -200,72 +209,56 @@ export default function GameScreen() {
   if (loading && !cityData) {
     return (
       <ThemedView style={styles.container}>
-        <ActivityIndicator size="large" color="#4A90E2" />
-        <ThemedText style={styles.loadingText}>Loading city...</ThemedText>
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4A90E2" />
+            <ThemedText style={styles.loadingText}>Loading city...</ThemedText>
+          </View>
+        </SafeAreaView>
       </ThemedView>
     );
   }
 
-  // Round Complete Screen
   if (gameState === 'roundComplete') {
     return (
       <ThemedView style={styles.container}>
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={['top']}>
           <ScrollView 
             showsVerticalScrollIndicator={false} 
-            contentContainerStyle={styles.completeScrollContent}
-            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
           >
             <View style={styles.completeContainer}>
-              <Ionicons name="trophy" size={80} color="#FFD700" style={styles.trophyIcon} />
-              <ThemedText style={styles.completeTitle}>Round Complete!</ThemedText>
+              <Ionicons name="trophy" size={80} color="#FFD700" />
+              <Text style={[styles.largeTitle, { color: isDark ? '#FFF' : '#000' }]}>Round Complete!</Text>
               
-              <View style={styles.finalScoreContainer}>
-                <ThemedText style={styles.finalScoreLabel}>Final Score</ThemedText>
-                <View style={styles.finalScoreRow}>
-                  <View style={styles.finalScoreItem}>
+              <View style={styles.finalScoreCard}>
+                <Text style={[styles.mediumText, { color: isDark ? '#FFF' : '#000' }]}>Final Score</Text>
+                <View style={styles.scoreRow}>
+                  <View style={styles.scoreColumn}>
                     <Ionicons name="checkmark-circle" size={40} color="#50C878" />
-                    <ThemedText style={styles.finalScoreValue}>{score.correct}</ThemedText>
-                    <ThemedText style={styles.finalScoreText}>Correct</ThemedText>
+                    <Text style={[styles.largeNumber, { color: '#50C878' }]}>{score.correct}</Text>
+                    <Text style={[styles.smallText, { color: isDark ? '#CCC' : '#666' }]}>Correct</Text>
                   </View>
-                  <View style={styles.finalScoreDivider} />
-                  <View style={styles.finalScoreItem}>
+                  <View style={styles.scoreColumn}>
                     <Ionicons name="close-circle" size={40} color="#FF6B6B" />
-                    <ThemedText style={styles.finalScoreValue}>{score.incorrect}</ThemedText>
-                    <ThemedText style={styles.finalScoreText}>Wrong</ThemedText>
+                    <Text style={[styles.largeNumber, { color: '#FF6B6B' }]}>{score.incorrect}</Text>
+                    <Text style={[styles.smallText, { color: isDark ? '#CCC' : '#666' }]}>Wrong</Text>
                   </View>
                 </View>
-                <View style={styles.accuracyContainer}>
-                  <ThemedText style={styles.accuracyLabel}>Accuracy</ThemedText>
-                  <ThemedText style={styles.accuracyValue}>
-                    {Math.round((score.correct / totalCities) * 100)}%
-                  </ThemedText>
-                </View>
+                <Text style={[styles.accuracyText, { color: isDark ? '#FFF' : '#000' }]}>
+                  Accuracy: {Math.round((score.correct / totalCities) * 100)}%
+                </Text>
               </View>
 
-              <View style={styles.completeButtonsContainer}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.continueButton,
-                    pressed && styles.buttonPressed,
-                  ]}
-                  onPress={handleContinueRound}
-                >
-                  <Ionicons name="refresh" size={24} color="#FFF" />
-                  <ThemedText style={styles.continueButtonText}>Play Another Round</ThemedText>
-                </Pressable>
+              <Pressable style={styles.primaryButton} onPress={handleContinueRound}>
+                <Ionicons name="refresh" size={24} color="#FFF" />
+                <Text style={styles.buttonText}>Play Again</Text>
+              </Pressable>
 
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.exitButton,
-                    pressed && styles.buttonPressed,
-                  ]}
-                  onPress={handleExitToHome}
-                >
-                  <Ionicons name="home" size={24} color="#4A90E2" />
-                  <ThemedText style={styles.exitButtonText}>Exit to Home</ThemedText>
-                </Pressable>
-              </View>
+              <Pressable style={styles.secondaryButton} onPress={handleExitToHome}>
+                <Ionicons name="home" size={24} color="#4A90E2" />
+                <Text style={[styles.buttonText, { color: '#4A90E2' }]}>Exit to Home</Text>
+              </Pressable>
             </View>
           </ScrollView>
         </SafeAreaView>
@@ -275,144 +268,143 @@ export default function GameScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView 
           showsVerticalScrollIndicator={false} 
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#4A90E2" />
-        </Pressable>
-        <ThemedText style={styles.modeTitle}>
-          {mode === 'party' ? 'Party Mode' : 'Classic Mode'}
-        </ThemedText>
-        <View style={styles.placeholder} />
-      </View>
-
-      {/* Score */}
-      <View style={styles.scoreContainer}>
-        <View style={styles.scoreItem}>
-          <ThemedText style={styles.scoreLabel}>Correct</ThemedText>
-          <ThemedText style={styles.scoreValue}>{score.correct}</ThemedText>
-        </View>
-        <View style={styles.scoreItem}>
-          <ThemedText style={styles.scoreLabel}>Wrong</ThemedText>
-          <ThemedText style={styles.scoreValue}>{score.incorrect}</ThemedText>
-        </View>
-        {mode === 'classic' && (
-          <View style={styles.scoreItem}>
-            <ThemedText style={styles.scoreLabel}>Progress</ThemedText>
-            <ThemedText style={styles.scoreValue}>{currentCityIndex - 1}/{totalCities}</ThemedText>
+          {/* Header */}
+          <View style={styles.topBar}>
+            <Pressable onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={28} color="#4A90E2" />
+            </Pressable>
+            <Text style={[styles.headerTitle, { color: isDark ? '#FFF' : '#000' }]}>
+              {mode === 'party' ? 'Party Mode' : 'Classic Mode'}
+            </Text>
+            <View style={{ width: 44 }} />
           </View>
-        )}
-      </View>
 
-      {/* City Display */}
-      {cityData && (
-        <View style={styles.cityContainer}>
-          <Ionicons name="location" size={40} color="#4A90E2" />
-          <ThemedText style={styles.cityName}>{cityData.city}</ThemedText>
-          <ThemedText style={styles.countryName}>{cityData.country}</ThemedText>
-        </View>
-      )}
-
-      {/* Question */}
-      <View style={styles.questionContainer}>
-        <ThemedText style={styles.question}>
-          What&apos;s the current temperature?
-        </ThemedText>
-        {gameState === 'playing' && (
-          <View style={styles.timerContainer}>
-            <Ionicons name="timer-outline" size={16} color="#666" />
-            <ThemedText style={styles.timerText}>{timer}s</ThemedText>
-            {timer <= 2 && <ThemedText style={styles.bonusText}>+25% bonus!</ThemedText>}
-            {timer > 2 && timer <= 5 && <ThemedText style={styles.bonusText}>+10% bonus</ThemedText>}
-          </View>
-        )}
-      </View>
-
-      {/* Input or Result */}
-      {gameState === 'playing' ? (
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={[styles.input, { color: isDark ? '#FFFFFF' : '#000000' }]}
-            value={userGuess}
-            onChangeText={(text) => {
-              // Only allow whole numbers (positive and negative)
-              const filtered = text.replace(/[^0-9-]/g, '');
-              // Prevent multiple minus signs and ensure minus is only at start
-              if (filtered === '-' || (filtered.startsWith('-') && !filtered.slice(1).includes('-') && /^-?\d*$/.test(filtered))) {
-                setUserGuess(filtered);
-              } else if (/^\d*$/.test(filtered)) {
-                setUserGuess(filtered);
-              }
-            }}
-            keyboardType="number-pad"
-            placeholder="Enter temperature"
-            placeholderTextColor="#999"
-            autoFocus
-          />
-          <ThemedText style={styles.unitLabel}>°{tempUnit}</ThemedText>
-        </View>
-      ) : (
-        <View style={styles.resultContainer}>
-          <ThemedText style={styles.resultMessage}>{getResultMessage()}</ThemedText>
-          <View style={styles.temperatureComparison}>
-            <View style={styles.tempItem}>
-              <ThemedText style={styles.tempLabel}>Your Guess</ThemedText>
-              <ThemedText style={styles.tempValue}>{userGuess}°{tempUnit}</ThemedText>
+          {/* City Card */}
+          {cityData && (
+            <View style={styles.cityCard}>
+              <Ionicons name="location" size={50} color="#4A90E2" />
+              <Text style={[styles.cityTitle, { color: isDark ? '#FFF' : '#000' }]}>
+                {cityData.city}
+              </Text>
+              <Text style={[styles.countryText, { color: isDark ? '#AAA' : '#666' }]}>
+                {cityData.country}
+              </Text>
             </View>
-            <Ionicons name="arrow-forward" size={24} color="#666" />
-            <View style={styles.tempItem}>
-              <ThemedText style={styles.tempLabel}>Actual</ThemedText>
-              <ThemedText style={styles.tempValue}>
-                {tempUnit === 'C' 
-                  ? cityData?.temperature 
-                  : Math.round(celsiusToFahrenheit(cityData?.temperature || 0))}°{tempUnit}
-              </ThemedText>
-            </View>
+          )}
+
+          {/* Question */}
+          <View style={styles.questionSection}>
+            <Text style={[styles.questionText, { color: isDark ? '#FFF' : '#000' }]}>
+              What's the current temperature?
+            </Text>
+            {gameState === 'playing' && (
+              <View style={styles.timerBadge}>
+                <Ionicons name="timer-outline" size={18} color="#666" />
+                <Text style={styles.timerText}>{timer}s</Text>
+                {timer <= 2 && <Text style={styles.bonusText}>+25% bonus!</Text>}
+                {timer > 2 && timer <= 5 && <Text style={styles.bonusText}>+10% bonus</Text>}
+              </View>
+            )}
           </View>
-        </View>
-      )}
 
-      {/* Action Button */}
-      <View style={styles.buttonContainer}>
-        {gameState === 'playing' ? (
-          <Pressable
-            style={({ pressed }) => [
-              styles.submitButton,
-              pressed && styles.buttonPressed,
-              !userGuess && styles.buttonDisabled,
-            ]}
-            onPress={handleSubmit}
-            disabled={!userGuess}
-          >
-            <ThemedText style={styles.buttonText}>Submit Guess</ThemedText>
-          </Pressable>
-        ) : (
-          <Pressable
-            style={({ pressed }) => [styles.nextButton, pressed && styles.buttonPressed]}
-            onPress={handleNextCity}
-          >
-            <ThemedText style={styles.buttonText}>
-              {mode === 'classic' && currentCityIndex <= totalCities ? `Next City (${currentCityIndex}/${totalCities})` : 'Next City'}
-            </ThemedText>
-            <Ionicons name="arrow-forward" size={20} color="#FFF" />
-          </Pressable>
-        )}
-      </View>
+          {/* Input or Result */}
+          {gameState === 'playing' ? (
+            <View style={styles.inputSection}>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={[styles.temperatureInput, { color: isDark ? '#FFF' : '#000' }]}
+                  value={userGuess}
+                  onChangeText={(text) => {
+                    const filtered = text.replace(/[^0-9-]/g, '');
+                    if (filtered === '-' || (filtered.startsWith('-') && !filtered.slice(1).includes('-') && /^-?\d*$/.test(filtered))) {
+                      setUserGuess(filtered);
+                    } else if (/^\d*$/.test(filtered)) {
+                      setUserGuess(filtered);
+                    }
+                  }}
+                  keyboardType="number-pad"
+                  placeholder="--"
+                  placeholderTextColor="#999"
+                  autoFocus
+                />
+                <Text style={[styles.unitText, { color: isDark ? '#AAA' : '#666' }]}>
+                  °{tempUnit}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.resultSection}>
+              <Text style={[styles.resultText, { color: isDark ? '#FFF' : '#000' }]}>
+                {getResultMessage()}
+              </Text>
+              <View style={styles.comparisonCard}>
+                <View style={styles.comparisonItem}>
+                  <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Your Guess</Text>
+                  <Text style={[styles.tempNumber, { color: isDark ? '#FFF' : '#000' }]}>
+                    {userGuess}°{tempUnit}
+                  </Text>
+                </View>
+                <Ionicons name="arrow-forward" size={28} color="#666" />
+                <View style={styles.comparisonItem}>
+                  <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Actual</Text>
+                  <Text style={[styles.tempNumber, { color: isDark ? '#FFF' : '#000' }]}>
+                    {tempUnit === 'C' 
+                      ? cityData?.temperature 
+                      : Math.round(celsiusToFahrenheit(cityData?.temperature || 0))}°{tempUnit}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
 
-      {/* Hint */}
-      {gameState === 'playing' && (
-        <View style={styles.hintContainer}>
-          <ThemedText style={styles.hint}>
-            💡 Tip: Consider the hemisphere, season, and latitude!
-          </ThemedText>
-        </View>
-      )}
+          {/* Action Button */}
+          {gameState === 'playing' ? (
+            <Pressable
+              style={[styles.primaryButton, !userGuess && styles.disabledButton]}
+              onPress={handleSubmit}
+              disabled={!userGuess}
+            >
+              <Text style={styles.buttonText}>Submit Guess</Text>
+            </Pressable>
+          ) : (
+            // Only show Next City if not at the end in classic mode
+            mode === 'classic' && currentCityIndex >= totalCities ? null : (
+              <Pressable style={styles.primaryButton} onPress={handleNextCity}>
+                <Text style={styles.buttonText}>
+                  {mode === 'classic' && currentCityIndex < totalCities
+                    ? `Next City (${currentCityIndex}/${totalCities})`
+                    : 'Next City'}
+                </Text>
+                <Ionicons name="arrow-forward" size={20} color="#FFF" />
+              </Pressable>
+            )
+          )}
+
+          {/* Score at Bottom */}
+          <View style={styles.scoreCard}>
+            <View style={styles.scoreItem}>
+              <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Correct</Text>
+              <Text style={styles.scoreNumber}>{score.correct}</Text>
+            </View>
+            <View style={styles.scoreItem}>
+              <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Wrong</Text>
+              <Text style={styles.scoreNumber}>{score.incorrect}</Text>
+            </View>
+            {mode === 'classic' && (
+              <View style={styles.scoreItem}>
+                <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Progress</Text>
+                <Text style={styles.scoreNumber}>{currentCityIndex - 1}/{totalCities}</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -423,318 +415,218 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  safeArea: {
-    flex: 1,
-  },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    padding: 20,
   },
-  completeScrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 30,
-    paddingBottom: 40,
-    flexGrow: 1,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  header: {
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 0,
-    marginBottom: 15,
-    paddingTop: 5,
+    marginBottom: 24,
   },
   backButton: {
     padding: 8,
   },
-  modeTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  placeholder: {
-    width: 40,
-  },
-  scoreContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-    paddingVertical: 12,
-    backgroundColor: 'rgba(74, 144, 226, 0.1)',
-    borderRadius: 10,
-  },
-  scoreItem: {
-    alignItems: 'center',
-  },
-  scoreLabel: {
-    fontSize: 13,
-    opacity: 0.7,
-    marginBottom: 4,
-  },
-  scoreValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#4A90E2',
-  },
-  cityContainer: {
-    alignItems: 'center',
-    marginVertical: 20,
-    padding: 15,
-    backgroundColor: 'rgba(74, 144, 226, 0.05)',
-    borderRadius: 15,
-  },
-  cityName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginTop: 8,
-  },
-  countryName: {
-    fontSize: 16,
-    opacity: 0.7,
-    marginTop: 4,
-  },
-  questionContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  question: {
-    fontSize: 18,
-    fontWeight: '500',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginBottom: 25,
-  },
-  input: {
-    fontSize: 40,
-    fontWeight: 'bold',
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
     textAlign: 'center',
-    borderBottomWidth: 3,
-    borderBottomColor: '#4A90E2',
-    minWidth: 120,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    includeFontPadding: false,
   },
-  unitLabel: {
+  cityCard: {
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: 'rgba(74, 144, 226, 0.08)',
+    borderRadius: 20,
+    marginBottom: 24,
+  },
+  cityTitle: {
     fontSize: 32,
-    fontWeight: '500',
-    opacity: 0.7,
+    fontWeight: '800',
+    marginTop: 12,
+    textAlign: 'center',
   },
-  resultContainer: {
+  countryText: {
+    fontSize: 18,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  questionSection: {
     alignItems: 'center',
-    marginBottom: 25,
+    marginBottom: 24,
   },
-  resultMessage: {
+  questionText: {
     fontSize: 20,
     fontWeight: '600',
+    marginBottom: 12,
     textAlign: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 10,
   },
-  temperatureComparison: {
+  timerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 15,
-    padding: 15,
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     backgroundColor: 'rgba(128, 128, 128, 0.1)',
-    borderRadius: 12,
-  },
-  tempItem: {
-    alignItems: 'center',
-  },
-  tempLabel: {
-    fontSize: 12,
-    opacity: 0.7,
-    marginBottom: 4,
-  },
-  tempValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  buttonContainer: {
-    marginBottom: 15,
-  },
-  submitButton: {
-    backgroundColor: '#4A90E2',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  nextButton: {
-    backgroundColor: '#50C878',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  buttonPressed: {
-    opacity: 0.7,
-  },
-  buttonDisabled: {
-    opacity: 0.4,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  hintContainer: {
-    padding: 15,
-    backgroundColor: 'rgba(255, 193, 7, 0.1)',
-    borderRadius: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FFC107',
-  },
-  hint: {
-    fontSize: 13,
-    textAlign: 'center',
-    opacity: 0.8,
-  },
-  loadingText: {
-    marginTop: 20,
-    fontSize: 16,
-    opacity: 0.7,
-  },
-  timerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: 'rgba(74, 144, 226, 0.1)',
-    borderRadius: 8,
+    borderRadius: 20,
   },
   timerText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#666',
   },
   bonusText: {
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: '700',
     color: '#50C878',
+  },
+  inputSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  temperatureInput: {
+    fontSize: 48,
+    fontWeight: '800',
+    textAlign: 'center',
+    borderBottomWidth: 4,
+    borderBottomColor: '#4A90E2',
+    minWidth: 140,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  unitText: {
+    fontSize: 36,
     fontWeight: '600',
-    marginLeft: 8,
+  },
+  resultSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  resultText: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 16,
+  },
+  comparisonCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+    padding: 20,
+    backgroundColor: 'rgba(128, 128, 128, 0.08)',
+    borderRadius: 16,
+  },
+  comparisonItem: {
+    alignItems: 'center',
+  },
+  tempNumber: {
+    fontSize: 28,
+    fontWeight: '800',
+    marginTop: 8,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#4A90E2',
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(74, 144, 226, 0.1)',
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+  },
+  disabledButton: {
+    opacity: 0.4,
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  scoreCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 20,
+    backgroundColor: 'rgba(74, 144, 226, 0.08)',
+    borderRadius: 16,
+    marginTop: 8,
+  },
+  scoreItem: {
+    alignItems: 'center',
+  },
+  scoreNumber: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#4A90E2',
+    marginTop: 6,
+  },
+  smallText: {
+    fontSize: 14,
+  },
+  mediumText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  largeTitle: {
+    fontSize: 36,
+    fontWeight: '800',
+    marginVertical: 16,
+    textAlign: 'center',
+  },
+  largeNumber: {
+    fontSize: 32,
+    fontWeight: '800',
+    marginTop: 8,
   },
   completeContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: 40,
   },
-  trophyIcon: {
-    marginTop: 20,
-  },
-  completeTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 30,
-    lineHeight: 40,
-    paddingTop: 5,
-  },
-  finalScoreContainer: {
+  finalScoreCard: {
     width: '100%',
-    backgroundColor: 'rgba(74, 144, 226, 0.1)',
-    borderRadius: 20,
     padding: 24,
-    marginBottom: 30,
+    backgroundColor: 'rgba(74, 144, 226, 0.08)',
+    borderRadius: 20,
+    alignItems: 'center',
+    marginVertical: 24,
   },
-  finalScoreLabel: {
+  scoreRow: {
+    flexDirection: 'row',
+    gap: 40,
+    marginVertical: 20,
+  },
+  scoreColumn: {
+    alignItems: 'center',
+  },
+  accuracyText: {
     fontSize: 20,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 28,
-    paddingTop: 3,
-  },
-  finalScoreRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  finalScoreItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  finalScoreDivider: {
-    width: 1,
-    height: 60,
-    backgroundColor: 'rgba(128, 128, 128, 0.3)',
-    marginHorizontal: 10,
-  },
-  finalScoreValue: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    marginTop: 8,
-    lineHeight: 44,
-    paddingTop: 4,
-  },
-  finalScoreText: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginTop: 4,
-    lineHeight: 20,
-    paddingTop: 2,
-  },
-  accuracyContainer: {
-    alignItems: 'center',
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(128, 128, 128, 0.2)',
-  },
-  accuracyLabel: {
-    fontSize: 16,
-    opacity: 0.7,
-    marginBottom: 8,
-    lineHeight: 22,
-    paddingTop: 2,
-  },
-  accuracyValue: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#4A90E2',
-    lineHeight: 48,
-    paddingTop: 4,
-  },
-  completeButtonsContainer: {
-    width: '100%',
-    gap: 15,
-  },
-  continueButton: {
-    backgroundColor: '#4A90E2',
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  continueButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  exitButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#4A90E2',
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  exitButtonText: {
-    color: '#4A90E2',
-    fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
+    marginTop: 16,
   },
 });

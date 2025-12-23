@@ -1,8 +1,9 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { S } from '@/styles';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 export default function RulesScreen() {
   const router = useRouter();
@@ -156,76 +157,4 @@ export default function RulesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  placeholder: {
-    width: 40,
-  },
-  scrollView: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  section: {
-    marginBottom: 30,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 15,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  paragraph: {
-    fontSize: 15,
-    lineHeight: 22,
-    opacity: 0.8,
-    marginBottom: 10,
-  },
-  rulesList: {
-    gap: 10,
-  },
-  rule: {
-    fontSize: 15,
-    lineHeight: 22,
-    opacity: 0.8,
-  },
-  referenceList: {
-    gap: 12,
-  },
-  referenceItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    backgroundColor: 'rgba(128, 128, 128, 0.1)',
-    borderRadius: 8,
-  },
-  referenceTemp: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  referenceDesc: {
-    fontSize: 16,
-    opacity: 0.7,
-  },
-});
+const styles = S.rules;
