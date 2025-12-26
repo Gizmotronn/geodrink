@@ -8,7 +8,7 @@ import { celsiusToFahrenheit, fahrenheitToCelsius, getTempUnit, updateGameStats 
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, TextInput, View, Text } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface CityData extends City {
@@ -33,15 +33,18 @@ export default function GameScreen() {
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    initGame();
-    loadSounds();
-    return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
-      unloadSounds();
-    };
-  }, []);
+      const runInit = async () => {
+        await initGame();
+      };
+      runInit();
+      loadSounds();
+      return () => {
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+        }
+        unloadSounds();
+      };
+    }, []);
 
   const initGame = async () => {
     await loadTempUnit();
@@ -301,7 +304,7 @@ export default function GameScreen() {
           {/* Question */}
           <View style={styles.questionSection}>
             <Text style={[styles.questionText, { color: isDark ? '#FFF' : '#000' }]}>
-              What's the current temperature?
+              What is the current temperature?
             </Text>
             {gameState === 'playing' && (
               <View style={styles.timerBadge}>
