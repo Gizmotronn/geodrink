@@ -16,6 +16,7 @@ function RootLayoutContent() {
         <Stack.Screen name="rules" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack.Screen name="party-setup" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </NavigationThemeProvider>
