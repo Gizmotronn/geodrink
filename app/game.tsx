@@ -1,10 +1,10 @@
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useTheme } from '@/contexts/ThemeContext';
-import { CITIES, City } from '@/data/cities';
-import { loadSounds, playCorrectSound, playWrongSound, unloadSounds } from '@/services/audio';
-import { getCurrentTemperature } from '@/services/weather';
-import { celsiusToFahrenheit, fahrenheitToCelsius, getTempUnit, updateGameStats } from '@/utils/storage';
+import { ThemedText } from '../components/themed-text';
+import { ThemedView } from '../components/themed-view';
+import { useTheme } from '../contexts/ThemeContext';
+import { CITIES, City } from '../data/cities';
+import { loadSounds, playCorrectSound, playWrongSound, unloadSounds } from '../services/audio';
+import { getCurrentTemperature } from '../services/weather';
+import { celsiusToFahrenheit, fahrenheitToCelsius, getTempUnit, updateGameStats } from '../utils/storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';

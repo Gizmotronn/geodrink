@@ -1,4 +1,4 @@
-import { getDarkMode, setDarkMode } from '@/utils/storage';
+import { getDarkMode, setDarkMode } from '../utils/storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 interface ThemeContextType {

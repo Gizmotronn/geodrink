@@ -1,9 +1,9 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { getRandomFunFact } from "@/data/funFacts";
-import { S } from "@/styles";
-import type { GameStats } from "@/utils/storage";
-import { getGameStats, getTempUnit, setTempUnit } from "@/utils/storage";
+import { getRandomFunFact } from "../data/funFacts";
+import { S } from "../styles";
+import { ThemedText } from "../components/themed-text";
+import { ThemedView } from "../components/themed-view";
+import type { GameStats } from "../utils/storage";
+import { getGameStats, getTempUnit, setTempUnit } from "../utils/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
