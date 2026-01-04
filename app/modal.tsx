@@ -1,5 +1,5 @@
-import { S } from '../styles';
 import { Link } from 'expo-router';
+import { S } from '../styles';
 
 import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';

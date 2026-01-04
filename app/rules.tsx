@@ -1,9 +1,9 @@
-import { ThemedText } from '../components/themed-text';
-import { ThemedView } from '../components/themed-view';
-import { S } from '../styles';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
+import { ThemedText } from '../components/themed-text';
+import { ThemedView } from '../components/themed-view';
+import { S } from '../styles';
 
 export default function RulesScreen() {
   const router = useRouter();
@@ -49,7 +49,7 @@ export default function RulesScreen() {
           <View style={styles.sectionHeader}>
             <Ionicons name="beer" size={24} color="#E24A90" />
             <ThemedText style={[styles.sectionTitle, { color: '#E24A90' }]}>
-              Party/Drink Mode
+              Party Mode
             </ThemedText>
           </View>
           <ThemedText style={styles.paragraph}>

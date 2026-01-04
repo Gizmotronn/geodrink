@@ -1,5 +1,5 @@
-import { S } from '../styles';
 import { Text, type TextProps } from 'react-native';
+import { S } from '../styles';
 
 import { useThemeColor } from '../hooks/use-theme-color';
 

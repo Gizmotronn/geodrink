@@ -1,12 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, Switch, View } from 'react-native';
 import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';
 import { useTheme } from '../contexts/ThemeContext';
 import { S } from '../styles';
 import { getTempUnit, setTempUnit } from '../utils/storage';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Switch, View } from 'react-native';
 
 export default function SettingsScreen() {
   const router = useRouter();

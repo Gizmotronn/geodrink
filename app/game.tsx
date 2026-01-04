@@ -1,3 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';
 import { useTheme } from '../contexts/ThemeContext';
@@ -5,11 +10,6 @@ import { CITIES, City } from '../data/cities';
 import { loadSounds, playCorrectSound, playWrongSound, unloadSounds } from '../services/audio';
 import { getCurrentTemperature } from '../services/weather';
 import { celsiusToFahrenheit, fahrenheitToCelsius, getTempUnit, updateGameStats } from '../utils/storage';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface CityData extends City {
   temperature: number;
@@ -32,7 +32,7 @@ export default function GameScreen() {
   const [playerScores, setPlayerScores] = useState<number[]>(Array(playerCount).fill(0));
   const [score, setScore] = useState({ correct: 0, incorrect: 0 }); // legacy/classic
   const [tempUnit, setTempUnit] = useState<'C' | 'F'>('C');
-  // Remove timer and timeBonus
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     const runInit = async () => {
@@ -71,25 +71,6 @@ export default function GameScreen() {
     setTempUnit(unit);
   };
 
-  const startTimer = () => {
-    startTimeRef.current = Date.now();
-    setTimer(0);
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-    }
-    timerIntervalRef.current = setInterval(() => {
-      setTimer(Math.floor((Date.now() - startTimeRef.current) / 1000));
-    }, 100);
-  };
-
-  const stopTimer = (): number => {
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
-    }
-    return (Date.now() - startTimeRef.current) / 1000;
-  };
-
   const loadNewCity = async () => {
     if (currentCityIndex > totalCities) {
       setGameState('roundComplete');
@@ -110,7 +91,6 @@ export default function GameScreen() {
       return;
     }
 
-    // Remove timeInSeconds and timeBonus
     const actualTempCelsius = cityData.temperature;
     const guessTempCelsius = tempUnit === 'F' ? fahrenheitToCelsius(guess) : guess;
     const differenceCelsius = Math.abs(guessTempCelsius - actualTempCelsius);
@@ -291,6 +271,9 @@ export default function GameScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets={true}
+          contentInsetAdjustmentBehavior="automatic"
         >
           {/* Header */}
           <View style={styles.topBar}>
@@ -307,7 +290,7 @@ export default function GameScreen() {
           {mode === 'party' && (
             <View style={{ alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 20, fontWeight: '700', color: '#E24A90' }}>
-                {currentPlayerName}'s turn
+                {currentPlayerName}&apos;s turn
               </Text>
               <Text style={{ fontSize: 15, color: '#888', marginTop: 2 }}>
                 ({currentCityIndex} / {totalCities})
@@ -341,25 +324,78 @@ export default function GameScreen() {
             <View style={styles.inputSection}>
               <View style={styles.inputRow}>
                 <TextInput
+                  ref={inputRef}
                   style={[styles.temperatureInput, { color: isDark ? '#FFF' : '#000' }]}
                   value={userGuess}
                   onChangeText={(text) => {
-                    const filtered = text.replace(/[^0-9-]/g, '');
-                    if (filtered === '-' || (filtered.startsWith('-') && !filtered.slice(1).includes('-') && /^-?\d*$/.test(filtered))) {
-                      setUserGuess(filtered);
-                    } else if (/^\d*$/.test(filtered)) {
-                      setUserGuess(filtered);
+                    // Allow negative sign, digits, and handle proper negative number formatting
+                    let filtered = text.replace(/[^0-9-]/g, '');
+                    
+                    // Handle negative sign rules
+                    if (filtered.includes('-')) {
+                      // Only allow negative sign at the beginning
+                      const parts = filtered.split('-');
+                      if (parts[0] === '' && parts.length === 2) {
+                        // Valid negative number format: -123
+                        filtered = '-' + parts[1].replace(/\D/g, '');
+                      } else {
+                        // Remove all negative signs and keep only digits
+                        filtered = filtered.replace(/-/g, '');
+                      }
                     }
+                    
+                    // Set the cleaned value
+                    setUserGuess(filtered);
                   }}
                   keyboardType="number-pad"
                   placeholder="--"
                   placeholderTextColor="#999"
                   autoFocus
+                  returnKeyType="done"
+                  onSubmitEditing={() => {
+                    inputRef.current?.blur();
+                    if (userGuess) {
+                      handleSubmit();
+                    }
+                  }}
                 />
                 <Text style={[styles.unitText, { color: isDark ? '#AAA' : '#666' }]}> 
                   °{tempUnit}
                 </Text>
               </View>
+              
+              {/* Custom minus button for iOS since numeric keyboard doesn't have one */}
+              <Pressable 
+                style={[styles.minusButton, { backgroundColor: isDark ? '#444' : '#E5E5E5' }]}
+                onPress={() => {
+                  if (userGuess.startsWith('-')) {
+                    // Remove minus sign
+                    setUserGuess(userGuess.substring(1));
+                  } else if (userGuess) {
+                    // Add minus sign
+                    setUserGuess('-' + userGuess);
+                  } else {
+                    // Start with minus
+                    setUserGuess('-');
+                  }
+                }}
+              >
+                <Text style={[styles.minusButtonText, { color: isDark ? '#FFF' : '#000' }]}>
+                  {userGuess.startsWith('-') ? '✕ Remove Minus' : '➖ Add Minus'}
+                </Text>
+              </Pressable>
+
+              {/* Submit button moved here so it's always visible */}
+              <Pressable
+                style={[styles.submitButton, !userGuess && styles.disabledButton]}
+                onPress={() => {
+                  inputRef.current?.blur();
+                  handleSubmit();
+                }}
+                disabled={!userGuess}
+              >
+                <Text style={styles.submitButtonText}>Submit Guess</Text>
+              </Pressable>
             </View>
           ) : (
             <View style={styles.resultSection}>
@@ -386,16 +422,8 @@ export default function GameScreen() {
             </View>
           )}
 
-          {/* Action Button */}
-          {gameState === 'playing' ? (
-            <Pressable
-              style={[styles.primaryButton, !userGuess && styles.disabledButton]}
-              onPress={handleSubmit}
-              disabled={!userGuess}
-            >
-              <Text style={styles.buttonText}>Submit Guess</Text>
-            </Pressable>
-          ) : (
+          {/* Action Button - only for non-playing states */}
+          {gameState !== 'playing' && (
             // Only show Next City if not at the end in classic mode
             (mode === 'classic' && currentCityIndex >= totalCities) ? null : (
               <Pressable style={styles.primaryButton} onPress={handleNextCity}>
@@ -438,7 +466,6 @@ export default function GameScreen() {
             )}
           </View>
 
-          <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -451,6 +478,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -503,25 +531,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     textAlign: 'center',
   },
-  timerBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(128, 128, 128, 0.1)',
-    borderRadius: 20,
-  },
-  timerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-  },
-  bonusText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#50C878',
-  },
   inputSection: {
     alignItems: 'center',
     marginBottom: 24,
@@ -540,6 +549,32 @@ const styles = StyleSheet.create({
     minWidth: 140,
     paddingVertical: 12,
     paddingHorizontal: 16,
+  },
+  minusButton: {
+    marginTop: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+    minWidth: 180,
+  },
+  minusButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  submitButton: {
+    marginTop: 24,
+    backgroundColor: '#4A90E2',
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    borderRadius: 16,
+    alignItems: 'center',
+    minWidth: 200,
+  },
+  submitButtonText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFF',
   },
   unitText: {
     fontSize: 36,
@@ -582,7 +617,8 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 32,
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 50,
+    marginTop: 16,
   },
   secondaryButton: {
     flexDirection: 'row',
