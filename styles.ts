@@ -1,7 +1,31 @@
 import { StyleSheet } from 'react-native';
+import { Colors } from './constants/theme';
 
 // Shared constants used by styles
 export const HEADER_HEIGHT = 250;
+
+/**
+ * Create dynamic style helpers based on theme colors
+ * These are used throughout the app components to maintain consistency
+ */
+export const getThemeStyles = (isDark: boolean) => {
+  const colors = isDark ? Colors.dark : Colors.light;
+  
+  return {
+    colors,
+    // Common utility styles for theme-aware components
+    primaryBackground: colors.primary,
+    primaryForeground: colors.primaryForeground,
+    secondaryBackground: colors.secondary,
+    secondaryForeground: colors.secondaryForeground,
+    accentBackground: colors.accent,
+    accentForeground: colors.accentForeground,
+    mutedBackground: colors.muted,
+    mutedForeground: colors.mutedForeground,
+    borderColor: colors.border,
+    destructiveColor: colors.destructive,
+  };
+};
 
 // Single source of truth for all app styles
 export const S = {
@@ -13,59 +37,143 @@ export const S = {
     safeArea: {
       flex: 1,
     },
-    scrollContent: {
-      paddingHorizontal: 20,
-      paddingTop: 0,
-      paddingBottom: 20,
-    },
-    header: {
+    headerBar: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
       alignItems: 'center',
-      marginTop: 0,
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+    },
+    versionText: {
+      fontSize: 13,
+      fontWeight: '500',
+      opacity: 0.6,
+    },
+    settingsButton: {
+      padding: 8,
+    },
+    scrollContent: {
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+      paddingTop: 32,
+      paddingBottom: 32,
+    },
+    titleContainer: {
+      alignItems: 'center',
       marginBottom: 12,
-      paddingTop: 0,
+      marginTop: 16,
     },
     title: {
-      fontSize: 36,
+      fontSize: 32,
       fontWeight: 'bold',
-      marginBottom: 4,
+      letterSpacing: -0.5,
+      lineHeight: 40,
+      includeFontPadding: false,
+      textAlignVertical: 'center',
     },
-    subtitle: {
-      fontSize: 14,
-      opacity: 0.7,
+    weatherCard: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 24,
+      borderRadius: 16,
+      marginBottom: 32,
+      borderWidth: 1,
+      borderColor: '#E0E0F0',
     },
-    tempToggle: {
+    weatherLeft: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
-      paddingVertical: 6,
-      paddingHorizontal: 10,
-      borderRadius: 20,
-      backgroundColor: 'rgba(74, 144, 226, 0.15)',
-      marginTop: 6,
+      gap: 12,
+      flex: 1,
     },
-    tempToggleText: {
+    weatherIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    weatherSmallText: {
+      fontSize: 13,
+      marginBottom: 4,
+    },
+    weatherLocationText: {
       fontSize: 16,
       fontWeight: '600',
-      color: '#4A90E2',
+    },
+    weatherRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    weatherTemp: {
+      fontSize: 24,
+      fontWeight: 'bold',
+    },
+
+    modesContainer: {
+      gap: 16,
+      marginBottom: 32,
+    },
+    modeButton: {
+      flexDirection: 'row',
+      paddingVertical: 20,
+      paddingHorizontal: 32,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 6,
+      gap: 8,
+    },
+    modeButtonText: {
+      fontSize: 18,
+      fontWeight: '600',
+    },
+    utilityButtonsGrid: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 32,
+    },
+    utilityButton: {
+      flex: 1,
+      flexDirection: 'row',
+      paddingVertical: 16,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      borderWidth: 1,
+    },
+    utilityButtonText: {
+      fontSize: 14,
+      fontWeight: '500',
+      textAlign: 'center',
+    },
+    buttonPressed: {
+      opacity: 0.7,
+      transform: [{ scale: 0.98 }],
     },
     leaderboardContainer: {
-      marginVertical: 10,
-      padding: 12,
+      marginVertical: 16,
+      padding: 16,
       borderRadius: 12,
-      backgroundColor: 'rgba(80, 200, 120, 0.1)',
       borderWidth: 1,
-      borderColor: 'rgba(80, 200, 120, 0.3)',
     },
     leaderboardTitle: {
       fontSize: 18,
       fontWeight: 'bold',
-      marginBottom: 10,
+      marginBottom: 12,
       textAlign: 'center',
     },
     statRow: {
       flexDirection: 'row',
       justifyContent: 'space-around',
-      marginBottom: 8,
+      marginBottom: 12,
     },
     statItem: {
       alignItems: 'center',
@@ -74,103 +182,30 @@ export const S = {
     statValue: {
       fontSize: 24,
       fontWeight: 'bold',
-      color: '#50C878',
     },
     statLabel: {
-      fontSize: 11,
-      opacity: 0.7,
-      marginTop: 2,
+      fontSize: 12,
+      marginTop: 4,
       textAlign: 'center',
-    },
-    globeContainer: {
-      alignItems: 'center',
-      marginVertical: 10,
-    },
-    globe: {
-      width: 120,
-      height: 120,
-      borderRadius: 60,
-      backgroundColor: 'rgba(74, 144, 226, 0.1)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderWidth: 2,
-      borderColor: 'rgba(74, 144, 226, 0.3)',
-    },
-    globeLabel: {
-      marginTop: 8,
-      fontSize: 16,
-      opacity: 0.6,
-    },
-    modesContainer: {
-      gap: 12,
-      marginBottom: 12,
-    },
-    modeButton: {
-      paddingVertical: 16,
-      paddingHorizontal: 30,
-      borderRadius: 15,
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      elevation: 5,
-    },
-    classicButton: {
-      backgroundColor: '#4A90E2',
-    },
-    partyButton: {
-      backgroundColor: '#E24A90',
-    },
-    modeButtonText: {
-      color: '#FFFFFF',
-      fontSize: 20,
-      fontWeight: '600',
-    },
-    buttonPressed: {
-      opacity: 0.7,
-      transform: [{ scale: 0.98 }],
-    },
-    bottomButtons: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      marginVertical: 10,
-    },
-    infoButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      paddingVertical: 10,
-      paddingHorizontal: 15,
-      borderRadius: 8,
-      backgroundColor: 'rgba(128, 128, 128, 0.1)',
-    },
-    infoButtonPressed: {
-      opacity: 0.6,
-    },
-    infoButtonText: {
-      fontSize: 14,
-      opacity: 0.8,
+      lineHeight: 14,
     },
     funFactContainer: {
-      marginTop: 10,
-      marginBottom: 5,
-      padding: 12,
-      borderRadius: 10,
-      backgroundColor: 'rgba(74, 144, 226, 0.1)',
+      marginTop: 8,
+      marginBottom: 12,
+      padding: 16,
+      borderRadius: 12,
       borderLeftWidth: 4,
-      borderLeftColor: '#4A90E2',
     },
     funFactLabel: {
       fontSize: 12,
       fontWeight: '600',
-      marginBottom: 5,
-      opacity: 0.7,
+      marginBottom: 8,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
     funFact: {
-      fontSize: 13,
-      lineHeight: 18,
-      opacity: 0.8,
+      fontSize: 14,
+      lineHeight: 20,
     },
   }),
 
@@ -216,8 +251,8 @@ export const S = {
       justifyContent: 'space-around',
       marginBottom: 20,
       paddingVertical: 12,
-      backgroundColor: 'rgba(74, 144, 226, 0.1)',
       borderRadius: 10,
+      // Background color set dynamically via useThemeColor (muted)
     },
     scoreItem: {
       alignItems: 'center',
@@ -230,14 +265,14 @@ export const S = {
     scoreValue: {
       fontSize: 24,
       fontWeight: 'bold',
-      color: '#4A90E2',
+      // Color set dynamically via useThemeColor (primary)
     },
     cityContainer: {
       alignItems: 'center',
       marginVertical: 20,
       padding: 15,
-      backgroundColor: 'rgba(74, 144, 226, 0.05)',
       borderRadius: 15,
+      // Background color set dynamically via useThemeColor (card)
     },
     cityName: {
       fontSize: 28,
@@ -270,7 +305,7 @@ export const S = {
       fontWeight: 'bold',
       textAlign: 'center',
       borderBottomWidth: 3,
-      borderBottomColor: '#4A90E2',
+      // borderBottomColor set dynamically via useThemeColor (primary)
       minWidth: 120,
       paddingVertical: 8,
       paddingHorizontal: 10,
@@ -298,8 +333,8 @@ export const S = {
       alignItems: 'center',
       gap: 15,
       padding: 15,
-      backgroundColor: 'rgba(128, 128, 128, 0.1)',
       borderRadius: 12,
+      // Background color set dynamically via useThemeColor (muted)
     },
     tempItem: {
       alignItems: 'center',
@@ -317,13 +352,13 @@ export const S = {
       marginBottom: 15,
     },
     submitButton: {
-      backgroundColor: '#4A90E2',
+      // backgroundColor set dynamically via useThemeColor (primary)
       paddingVertical: 16,
       borderRadius: 12,
       alignItems: 'center',
     },
     nextButton: {
-      backgroundColor: '#50C878',
+      // backgroundColor set dynamically via useThemeColor (accent)
       paddingVertical: 16,
       borderRadius: 12,
       alignItems: 'center',
@@ -344,10 +379,9 @@ export const S = {
     },
     hintContainer: {
       padding: 15,
-      backgroundColor: 'rgba(255, 193, 7, 0.1)',
       borderRadius: 10,
       borderLeftWidth: 4,
-      borderLeftColor: '#FFC107',
+      // Colors set dynamically via useThemeColor (warning colors)
     },
     hint: {
       fontSize: 13,
@@ -366,8 +400,8 @@ export const S = {
       marginTop: 10,
       paddingVertical: 6,
       paddingHorizontal: 12,
-      backgroundColor: 'rgba(74, 144, 226, 0.1)',
       borderRadius: 8,
+      // Background color set dynamically via useThemeColor (muted)
     },
     timerText: {
       fontSize: 16,
@@ -375,7 +409,7 @@ export const S = {
     },
     bonusText: {
       fontSize: 12,
-      color: '#50C878',
+      // color set dynamically via useThemeColor (accent)
       fontWeight: '600',
       marginLeft: 8,
     },
@@ -397,10 +431,10 @@ export const S = {
     },
     finalScoreContainer: {
       width: '100%',
-      backgroundColor: 'rgba(74, 144, 226, 0.1)',
       borderRadius: 20,
       padding: 24,
       marginBottom: 30,
+      // Background color set dynamically via useThemeColor (muted)
     },
     finalScoreLabel: {
       fontSize: 20,
@@ -456,16 +490,16 @@ export const S = {
     accuracyValue: {
       fontSize: 40,
       fontWeight: 'bold',
-      color: '#4A90E2',
       lineHeight: 48,
       paddingTop: 4,
+      // color set dynamically via useThemeColor (primary)
     },
     completeButtonsContainer: {
       width: '100%',
       gap: 15,
     },
     continueButton: {
-      backgroundColor: '#4A90E2',
+      // backgroundColor set dynamically via useThemeColor (primary)
       paddingVertical: 18,
       paddingHorizontal: 24,
       borderRadius: 12,
@@ -482,7 +516,7 @@ export const S = {
     exitButton: {
       backgroundColor: 'transparent',
       borderWidth: 2,
-      borderColor: '#4A90E2',
+      // borderColor set dynamically via useThemeColor (primary)
       paddingVertical: 18,
       paddingHorizontal: 24,
       borderRadius: 12,
@@ -492,7 +526,7 @@ export const S = {
       gap: 12,
     },
     exitButtonText: {
-      color: '#4A90E2',
+      // color set dynamically via useThemeColor (primary)
       fontSize: 18,
       fontWeight: '600',
     },
@@ -507,7 +541,7 @@ export const S = {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginTop: 40,
+      marginTop: 16,
       marginBottom: 20,
       paddingHorizontal: 20,
     },
@@ -564,8 +598,8 @@ export const S = {
       justifyContent: 'space-between',
       paddingVertical: 10,
       paddingHorizontal: 15,
-      backgroundColor: 'rgba(128, 128, 128, 0.1)',
       borderRadius: 8,
+      // Background color set dynamically via useThemeColor (muted)
     },
     referenceTemp: {
       fontSize: 16,
@@ -586,7 +620,7 @@ export const S = {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginTop: 40,
+      marginTop: 16,
       marginBottom: 20,
       paddingHorizontal: 20,
     },
@@ -621,9 +655,9 @@ export const S = {
       alignItems: 'center',
       paddingVertical: 15,
       paddingHorizontal: 15,
-      backgroundColor: 'rgba(128, 128, 128, 0.1)',
       borderRadius: 10,
       marginBottom: 10,
+      // Background color set dynamically via useThemeColor (muted)
     },
     optionItem: {
       flexDirection: 'row',
@@ -631,9 +665,9 @@ export const S = {
       alignItems: 'center',
       paddingVertical: 15,
       paddingHorizontal: 15,
-      backgroundColor: 'rgba(128, 128, 128, 0.1)',
       borderRadius: 10,
       marginBottom: 10,
+      // Background color set dynamically via useThemeColor (muted)
     },
     settingInfo: {
       flexDirection: 'row',
@@ -721,7 +755,7 @@ export const S = {
     link: {
       lineHeight: 30,
       fontSize: 16,
-      color: '#0a7ea4',
+      // color set dynamically via useThemeColor (primary)
     },
   }),
 };

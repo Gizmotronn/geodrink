@@ -1,15 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';
 import { useTheme } from '../contexts/ThemeContext';
+import { Colors } from '../constants/theme';
 import { CITIES, City } from '../data/cities';
 import { loadSounds, playCorrectSound, playWrongSound, unloadSounds } from '../services/audio';
 import { getCurrentTemperature } from '../services/weather';
 import { celsiusToFahrenheit, fahrenheitToCelsius, getTempUnit, updateGameStats } from '../utils/storage';
+import { getThemeStyles, toRgba } from '../utils/theme-colors';
+import { gameStyles } from './game.styles';
 
 interface CityData extends City {
   temperature: number;
@@ -33,6 +36,10 @@ export default function GameScreen() {
   const [score, setScore] = useState({ correct: 0, incorrect: 0 }); // legacy/classic
   const [tempUnit, setTempUnit] = useState<'C' | 'F'>('C');
   const inputRef = useRef<TextInput>(null);
+
+  const colors = isDark ? Colors.dark : Colors.light;
+  const themeStyles = getThemeStyles(isDark);
+  const styles = gameStyles;
 
   useEffect(() => {
     const runInit = async () => {
@@ -199,11 +206,12 @@ export default function GameScreen() {
   const currentPlayerName = mode === 'party' ? playerNames[currentPlayerIndex] : undefined;
 
   if (loading && !cityData) {
+    const colors = isDark ? Colors.dark : Colors.light;
     return (
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4A90E2" />
+            <ActivityIndicator size="large" color={colors.primary} />
             <ThemedText style={styles.loadingText}>Loading city...</ThemedText>
           </View>
         </SafeAreaView>
@@ -212,6 +220,7 @@ export default function GameScreen() {
   }
 
   if (gameState === 'roundComplete') {
+    const themeStyles = getThemeStyles(isDark);
     return (
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -220,42 +229,42 @@ export default function GameScreen() {
             contentContainerStyle={styles.scrollContent}
           >
             <View style={styles.completeContainer}>
-              <Ionicons name="trophy" size={80} color="#FFD700" />
-              <Text style={[styles.largeTitle, { color: isDark ? '#FFF' : '#000' }]}>Round Complete!</Text>
-              <View style={styles.finalScoreCard}>
-                <Text style={[styles.mediumText, { color: isDark ? '#FFF' : '#000' }]}>Final Score</Text>
+              <Ionicons name="trophy" size={80} color={colors.chart2} />
+              <Text style={[styles.largeTitle, { color: colors.foreground }]}>Round Complete!</Text>
+              <View style={[styles.finalScoreCard, { backgroundColor: themeStyles.primaryBackgroundLight }]}>
+                <Text style={[styles.mediumText, { color: colors.foreground }]}>Final Score</Text>
                 {mode === 'party' ? (
                   <View style={styles.scoreRow}>
                     {playerNames.map((name, idx) => (
                       <View key={name} style={styles.scoreColumn}>
-                        <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666', fontWeight: '700' }]}>{name}</Text>
-                        <Text style={[styles.largeNumber, { color: '#E24A90' }]}>{playerScores[idx]}</Text>
+                        <Text style={[styles.smallText, { color: colors.mutedForeground, fontWeight: '700' }]}>{name}</Text>
+                        <Text style={[styles.largeNumber, { color: colors.secondary }]}>{playerScores[idx]}</Text>
                       </View>
                     ))}
                   </View>
                 ) : (
                   <View style={styles.scoreRow}>
                     <View style={styles.scoreColumn}>
-                      <Ionicons name="checkmark-circle" size={40} color="#50C878" />
-                      <Text style={[styles.largeNumber, { color: '#50C878' }]}>{score.correct}</Text>
-                      <Text style={[styles.smallText, { color: isDark ? '#CCC' : '#666' }]}>Correct</Text>
+                      <Ionicons name="checkmark-circle" size={40} color={colors.chart3} />
+                      <Text style={[styles.largeNumber, { color: colors.chart3 }]}>{score.correct}</Text>
+                      <Text style={[styles.smallText, { color: colors.mutedForeground }]}>Correct</Text>
                     </View>
                     <View style={styles.scoreColumn}>
-                      <Ionicons name="close-circle" size={40} color="#FF6B6B" />
-                      <Text style={[styles.largeNumber, { color: '#FF6B6B' }]}>{score.incorrect}</Text>
-                      <Text style={[styles.smallText, { color: isDark ? '#CCC' : '#666' }]}>Wrong</Text>
+                      <Ionicons name="close-circle" size={40} color={colors.destructive} />
+                      <Text style={[styles.largeNumber, { color: colors.destructive }]}>{score.incorrect}</Text>
+                      <Text style={[styles.smallText, { color: colors.mutedForeground }]}>Wrong</Text>
                     </View>
                   </View>
                 )}
                 {mode === 'party' ? null : (
-                  <Text style={[styles.accuracyText, { color: isDark ? '#FFF' : '#000' }]}> 
+                  <Text style={[styles.accuracyText, { color: colors.foreground }]}> 
                     Accuracy: {Math.round((score.correct / totalCities) * 100)}%
                   </Text>
                 )}
               </View>
               <Pressable style={styles.secondaryButton} onPress={handleExitToHome}>
-                <Ionicons name="home" size={24} color="#4A90E2" />
-                <Text style={[styles.buttonText, { color: '#4A90E2' }]}>Exit to Home</Text>
+                <Ionicons name="home" size={24} color={colors.primary} />
+                <Text style={[styles.buttonText, { color: colors.primary }]}>Exit to Home</Text>
               </Pressable>
             </View>
           </ScrollView>
@@ -278,9 +287,9 @@ export default function GameScreen() {
           {/* Header */}
           <View style={styles.topBar}>
             <Pressable onPress={() => router.back()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={28} color="#4A90E2" />
+              <Ionicons name="arrow-back" size={28} color={isDark ? Colors.dark.primary : Colors.light.primary} />
             </Pressable>
-            <Text style={[styles.headerTitle, { color: isDark ? '#FFF' : '#000' }]}> 
+            <Text style={[styles.headerTitle, { color: colors.foreground }]}> 
               {mode === 'party' ? 'Party Mode' : 'Classic Mode'}
             </Text>
             <View style={{ width: 44 }} />
@@ -289,7 +298,7 @@ export default function GameScreen() {
           {/* Show current player in party mode */}
           {mode === 'party' && (
             <View style={{ alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ fontSize: 20, fontWeight: '700', color: '#E24A90' }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: colors.secondary }}>
                 {currentPlayerName}&apos;s turn
               </Text>
               <Text style={{ fontSize: 15, color: '#888', marginTop: 2 }}>
@@ -300,12 +309,12 @@ export default function GameScreen() {
 
           {/* City Card */}
           {cityData && (
-            <View style={styles.cityCard}>
-              <Ionicons name="location" size={50} color="#4A90E2" />
-              <Text style={[styles.cityTitle, { color: isDark ? '#FFF' : '#000' }]}> 
+            <View style={[styles.cityCard, { backgroundColor: toRgba(colors.primary, 0.05) }]}>
+              <Ionicons name="location" size={50} color={colors.primary} />
+              <Text style={[styles.cityTitle, { color: colors.foreground }]}> 
                 {cityData.city}
               </Text>
-              <Text style={[styles.countryText, { color: isDark ? '#AAA' : '#666' }]}> 
+              <Text style={[styles.countryText, { color: colors.mutedForeground }]}> 
                 {cityData.country}
               </Text>
             </View>
@@ -313,7 +322,7 @@ export default function GameScreen() {
 
           {/* Question */}
           <View style={styles.questionSection}>
-            <Text style={[styles.questionText, { color: isDark ? '#FFF' : '#000' }]}> 
+            <Text style={[styles.questionText, { color: colors.foreground }]}> 
               What is the current temperature?
             </Text>
             {/* No timer or bonus UI */}
@@ -325,7 +334,7 @@ export default function GameScreen() {
               <View style={styles.inputRow}>
                 <TextInput
                   ref={inputRef}
-                  style={[styles.temperatureInput, { color: isDark ? '#FFF' : '#000' }]}
+                  style={[styles.temperatureInput, { color: colors.foreground, borderBottomColor: colors.primary }]}
                   value={userGuess}
                   onChangeText={(text) => {
                     // Allow negative sign, digits, and handle proper negative number formatting
@@ -349,7 +358,7 @@ export default function GameScreen() {
                   }}
                   keyboardType="number-pad"
                   placeholder="--"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.mutedForeground}
                   autoFocus
                   returnKeyType="done"
                   onSubmitEditing={() => {
@@ -359,14 +368,14 @@ export default function GameScreen() {
                     }
                   }}
                 />
-                <Text style={[styles.unitText, { color: isDark ? '#AAA' : '#666' }]}> 
+                <Text style={[styles.unitText, { color: colors.mutedForeground }]}> 
                   °{tempUnit}
                 </Text>
               </View>
               
               {/* Custom minus button for iOS since numeric keyboard doesn't have one */}
               <Pressable 
-                style={[styles.minusButton, { backgroundColor: isDark ? '#444' : '#E5E5E5' }]}
+                style={[styles.minusButton, { backgroundColor: toRgba(colors.muted, 0.5) }]}
                 onPress={() => {
                   if (userGuess.startsWith('-')) {
                     // Remove minus sign
@@ -380,39 +389,39 @@ export default function GameScreen() {
                   }
                 }}
               >
-                <Text style={[styles.minusButtonText, { color: isDark ? '#FFF' : '#000' }]}>
+                <Text style={[styles.minusButtonText, { color: colors.foreground }]}>
                   {userGuess.startsWith('-') ? '✕ Remove Minus' : '➖ Add Minus'}
                 </Text>
               </Pressable>
 
               {/* Submit button moved here so it's always visible */}
               <Pressable
-                style={[styles.submitButton, !userGuess && styles.disabledButton]}
+                style={[styles.submitButton, !userGuess && styles.disabledButton, { backgroundColor: colors.primary }]}
                 onPress={() => {
                   inputRef.current?.blur();
                   handleSubmit();
                 }}
                 disabled={!userGuess}
               >
-                <Text style={styles.submitButtonText}>Submit Guess</Text>
+                <Text style={[styles.submitButtonText, { color: colors.primaryForeground }]}>Submit Guess</Text>
               </Pressable>
             </View>
           ) : (
             <View style={styles.resultSection}>
-              <Text style={[styles.resultText, { color: isDark ? '#FFF' : '#000' }]}> 
+              <Text style={[styles.resultText, { color: colors.foreground }]}> 
                 {getResultMessage()}
               </Text>
               <View style={styles.comparisonCard}>
                 <View style={styles.comparisonItem}>
-                  <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Your Guess</Text>
-                  <Text style={[styles.tempNumber, { color: isDark ? '#FFF' : '#000' }]}> 
+                  <Text style={[styles.smallText, { color: colors.mutedForeground }]}>Your Guess</Text>
+                  <Text style={[styles.tempNumber, { color: colors.foreground }]}>
                     {userGuess}°{tempUnit}
                   </Text>
                 </View>
-                <Ionicons name="arrow-forward" size={28} color="#666" />
+                <Ionicons name="arrow-forward" size={28} color={colors.primary} />
                 <View style={styles.comparisonItem}>
-                  <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Actual</Text>
-                  <Text style={[styles.tempNumber, { color: isDark ? '#FFF' : '#000' }]}> 
+                  <Text style={[styles.smallText, { color: colors.mutedForeground }]}>Actual</Text>
+                  <Text style={[styles.tempNumber, { color: colors.foreground }]}>
                     {tempUnit === 'C' 
                       ? cityData?.temperature 
                       : Math.round(celsiusToFahrenheit(cityData?.temperature || 0))}°{tempUnit}
@@ -426,31 +435,31 @@ export default function GameScreen() {
           {gameState !== 'playing' && (
             // Only show Next City if not at the end in classic mode
             (mode === 'classic' && currentCityIndex >= totalCities) ? null : (
-              <Pressable style={styles.primaryButton} onPress={handleNextCity}>
-                <Text style={styles.buttonText}>
+              <Pressable style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={handleNextCity}>
+                <Text style={[styles.buttonText, { color: colors.primaryForeground }]}>
                   {mode === 'classic' && currentCityIndex < totalCities
                     ? `Next City (${currentCityIndex}/${totalCities})`
                     : 'Next City'}
                 </Text>
-                <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                <Ionicons name="arrow-forward" size={20} color={colors.primaryForeground} />
               </Pressable>
             )
           )}
 
           {/* Score at Bottom */}
-          <View style={styles.scoreCard}>
+          <View style={[styles.scoreCard, { backgroundColor: themeStyles.mutedBackground }]}>
             {mode === 'party' ? (
               playerNames.map((name, idx) => (
                 <View key={name} style={styles.scoreItem}>
                   <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>{name}</Text>
-                  <Text style={styles.scoreNumber}>{playerScores[idx]}</Text>
+                  <Text style={[styles.scoreNumber, { color: colors.primary }]}>{playerScores[idx]}</Text>
                 </View>
               ))
             ) : (
               <>
                 <View style={styles.scoreItem}>
                   <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Correct</Text>
-                  <Text style={styles.scoreNumber}>{score.correct}</Text>
+                  <Text style={[styles.scoreNumber, { color: colors.primary }]}>{score.correct}</Text>
                 </View>
                 <View style={styles.scoreItem}>
                   <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Wrong</Text>
@@ -472,231 +481,3 @@ export default function GameScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-  },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  cityCard: {
-    alignItems: 'center',
-    padding: 24,
-    backgroundColor: 'rgba(74, 144, 226, 0.08)',
-    borderRadius: 20,
-    marginBottom: 24,
-  },
-  cityTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  countryText: {
-    fontSize: 18,
-    marginTop: 6,
-    textAlign: 'center',
-  },
-  questionSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  questionText: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  inputSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  temperatureInput: {
-    fontSize: 48,
-    fontWeight: '800',
-    textAlign: 'center',
-    borderBottomWidth: 4,
-    borderBottomColor: '#4A90E2',
-    minWidth: 140,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  minusButton: {
-    marginTop: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    alignItems: 'center',
-    minWidth: 180,
-  },
-  minusButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  submitButton: {
-    marginTop: 24,
-    backgroundColor: '#4A90E2',
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 16,
-    alignItems: 'center',
-    minWidth: 200,
-  },
-  submitButtonText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFF',
-  },
-  unitText: {
-    fontSize: 36,
-    fontWeight: '600',
-  },
-  resultSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  resultText: {
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 16,
-  },
-  comparisonCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
-    padding: 20,
-    backgroundColor: 'rgba(128, 128, 128, 0.08)',
-    borderRadius: 16,
-  },
-  comparisonItem: {
-    alignItems: 'center',
-  },
-  tempNumber: {
-    fontSize: 28,
-    fontWeight: '800',
-    marginTop: 8,
-  },
-  primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: '#4A90E2',
-    paddingVertical: 18,
-    paddingHorizontal: 32,
-    borderRadius: 16,
-    marginBottom: 50,
-    marginTop: 16,
-  },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(74, 144, 226, 0.1)',
-    paddingVertical: 18,
-    paddingHorizontal: 32,
-    borderRadius: 16,
-  },
-  disabledButton: {
-    opacity: 0.4,
-  },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFF',
-  },
-  scoreCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 20,
-    backgroundColor: 'rgba(74, 144, 226, 0.08)',
-    borderRadius: 16,
-    marginTop: 8,
-  },
-  scoreItem: {
-    alignItems: 'center',
-  },
-  scoreNumber: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#4A90E2',
-    marginTop: 6,
-  },
-  smallText: {
-    fontSize: 14,
-  },
-  mediumText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  largeTitle: {
-    fontSize: 36,
-    fontWeight: '800',
-    marginVertical: 16,
-    textAlign: 'center',
-  },
-  largeNumber: {
-    fontSize: 32,
-    fontWeight: '800',
-    marginTop: 8,
-  },
-  completeContainer: {
-    flex: 1,
-    alignItems: 'center',
-    paddingTop: 40,
-  },
-  finalScoreCard: {
-    width: '100%',
-    padding: 24,
-    backgroundColor: 'rgba(74, 144, 226, 0.08)',
-    borderRadius: 20,
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    gap: 40,
-    marginVertical: 20,
-  },
-  scoreColumn: {
-    alignItems: 'center',
-  },
-  accuracyText: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginTop: 16,
-  },
-});

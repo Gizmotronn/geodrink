@@ -1,18 +1,22 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "../components/themed-text";
 import { ThemedView } from "../components/themed-view";
 import { getRandomFunFact } from "../data/funFacts";
 import { S } from "../styles";
+import { Colors } from "../constants/theme";
+import { useTheme } from "../contexts/ThemeContext";
 import type { GameStats } from "../utils/storage";
 import { getGameStats, getTempUnit, setTempUnit } from "../utils/storage";
 const styles = S.home;
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { isDark } = useTheme();
+  const colors = isDark ? Colors.dark : Colors.light;
   const [tempUnit, setTempUnitState] = useState<'C' | 'F'>('C');
   const [stats, setStats] = useState<GameStats | null>(null);
   const [funFact, setFunFact] = useState<string>('');
@@ -42,94 +46,114 @@ export default function HomeScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} bounces={false}>
-      <View style={styles.header}>
-        <ThemedText type="title" style={styles.title}>
-          GeoDrink
-        </ThemedText>
-            <ThemedText style={styles.subtitle}>TBC</ThemedText>
+        {/* Header */}
+        <View style={styles.headerBar}>
+          <ThemedText style={styles.versionText}>v1.0</ThemedText>
+          <Pressable
+            style={({ pressed }) => [styles.settingsButton, pressed && styles.buttonPressed]}
+            onPress={() => router.push('/settings')}
+          >
+            <Ionicons name="settings-outline" size={24} color={colors.foreground} />
+          </Pressable>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} bounces={false}>
+          {/* Title */}
+          <View style={styles.titleContainer}>
+            <ThemedText style={[styles.title, { color: colors.foreground }]}>
+              Weathr
+            </ThemedText>
+          </View>
+
+          {/* Weather/Location Widget */}
+          <View style={[styles.weatherCard, { backgroundColor: colors.card, borderColor: colors.accent }]}>
+            <View style={styles.weatherLeft}>
+              <View style={[styles.weatherIcon, { backgroundColor: `${colors.accent}33` }]}>
+                <Ionicons name="location-outline" size={24} color={colors.accent} />
+              </View>
+              <View>
+                <ThemedText style={[styles.weatherSmallText, { color: colors.mutedForeground }]}>
+                  Current Location
+                </ThemedText>
+                <ThemedText style={[styles.weatherLocationText, { color: colors.foreground }]}>
+                  Auto-detected
+                </ThemedText>
+              </View>
+            </View>
+            <View style={styles.weatherRight}>
+              <Ionicons name="thermometer-outline" size={20} color={colors.accent} />
+              <ThemedText style={[styles.weatherTemp, { color: colors.foreground }]}>--°</ThemedText>
+            </View>
+          </View>
+
+
+          {/* Mode Buttons */}
+          <View style={styles.modesContainer}>
             <Pressable
-              style={({ pressed }) => [styles.tempToggle, pressed && styles.buttonPressed]}
-              onPress={toggleTempUnit}
+              style={({ pressed }) => [
+                styles.modeButton,
+                { backgroundColor: colors.primary, shadowColor: colors.primary },
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={() => router.push('/game?mode=classic')}
             >
-              <Ionicons name="thermometer-outline" size={20} color="#4A90E2" />
-              <ThemedText style={styles.tempToggleText}>
-                {tempUnit === 'C' ? '°C' : '°F'}
+              <ThemedText style={[styles.modeButtonText, { color: colors.primaryForeground }]}>
+                Classic Mode
+              </ThemedText>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.modeButton,
+                { backgroundColor: colors.secondary, shadowColor: colors.secondary },
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={() => router.push('/party-setup')}
+            >
+              <Ionicons name="people" size={20} color={colors.secondaryForeground} />
+              <ThemedText style={[styles.modeButtonText, { color: colors.secondaryForeground }]}>
+                Party Mode
               </ThemedText>
             </Pressable>
           </View>
 
-          <View style={styles.globeContainer}>
-            <View style={styles.globe}>
-              <Ionicons name="earth" size={100} color="#4A90E2" />
-            </View>
-            <ThemedText style={styles.globeLabel}>Geography</ThemedText>
-          </View>
-
-          <View style={styles.modesContainer}>
+          {/* Utility Buttons Grid */}
+          <View style={styles.utilityButtonsGrid}>
             <Pressable
-              style={({ pressed }) => [styles.modeButton, styles.classicButton, pressed && styles.buttonPressed]}
-              onPress={() => router.push('/game?mode=classic')}
-            >
-              <ThemedText style={styles.modeButtonText}>Classic Mode</ThemedText>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.modeButton, styles.partyButton, pressed && styles.buttonPressed]}
-              onPress={() => router.push('/party-setup')}
-            >
-              <ThemedText style={styles.modeButtonText}>Party Mode</ThemedText>
-            </Pressable>
-          </View>
-
-          <View style={styles.bottomButtons}>
-            <Pressable
-              style={({ pressed }) => [styles.infoButton, pressed && styles.infoButtonPressed]}
+              style={({ pressed }) => [
+                styles.utilityButton,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                pressed && styles.buttonPressed,
+              ]}
               onPress={() => router.push('/rules')}
             >
-              <Ionicons name="book-outline" size={20} color="#666" />
-              <ThemedText style={styles.infoButtonText}>Rules/Help</ThemedText>
+              <Ionicons name="book-outline" size={20} color={colors.accent} />
+              <ThemedText style={[styles.utilityButtonText, { color: colors.foreground }]}>
+                Rules/Help
+              </ThemedText>
             </Pressable>
 
             <Pressable
-              style={({ pressed }) => [styles.infoButton, pressed && styles.infoButtonPressed]}
+              style={({ pressed }) => [
+                styles.utilityButton,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                pressed && styles.buttonPressed,
+              ]}
               onPress={() => router.push('/settings')}
             >
-              <Ionicons name="settings-outline" size={20} color="#666" />
-              <ThemedText style={styles.infoButtonText}>Settings</ThemedText>
+              <Ionicons name="settings-outline" size={20} color={colors.accent} />
+              <ThemedText style={[styles.utilityButtonText, { color: colors.foreground }]}>
+                Settings
+              </ThemedText>
             </Pressable>
           </View>
 
-          {stats && stats.totalRounds > 0 && (
-            <View style={styles.leaderboardContainer}>
-              <ThemedText style={styles.leaderboardTitle}>Your Stats</ThemedText>
-              <View style={styles.statRow}>
-                <View style={styles.statItem}>
-                  <ThemedText style={styles.statValue}>{Math.round(stats.averageScore)}°</ThemedText>
-                  <ThemedText style={styles.statLabel}>Avg Difference</ThemedText>
-                </View>
-                <View style={styles.statItem}>
-                  <ThemedText style={styles.statValue}>{Math.round(stats.timeWeightedScore)}°</ThemedText>
-                  <ThemedText style={styles.statLabel}>Time-Weighted</ThemedText>
-                </View>
-              </View>
-              <View style={styles.statRow}>
-                <View style={styles.statItem}>
-                  <ThemedText style={styles.statValue}>{stats.perfectAnswers}</ThemedText>
-                  <ThemedText style={styles.statLabel}>Perfect (≤2°C)</ThemedText>
-                </View>
-                <View style={styles.statItem}>
-                  <ThemedText style={styles.statValue}>{stats.totalRounds}</ThemedText>
-                  <ThemedText style={styles.statLabel}>Total Rounds</ThemedText>
-                </View>
-              </View>
-            </View>
-          )}
-
-          <View style={styles.funFactContainer}>
-            <ThemedText style={styles.funFactLabel}>Fun Fact</ThemedText>
-            <ThemedText style={styles.funFact}>{funFact}</ThemedText>
+          {/* Fun Fact Card */}
+          <View style={[styles.funFactContainer, { backgroundColor: colors.card, borderLeftColor: colors.primary }]}>
+            <ThemedText style={[styles.funFactLabel, { color: colors.primary }]}>Fun Fact</ThemedText>
+            <ThemedText style={[styles.funFact, { color: colors.cardForeground }]}>{funFact}</ThemedText>
           </View>
         </ScrollView>
       </SafeAreaView>

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';
 import { S } from '../styles';
@@ -10,13 +11,14 @@ export default function RulesScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#4A90E2" />
-        </Pressable>
-        <ThemedText style={styles.title}>Rules & Help</ThemedText>
-        <View style={styles.placeholder} />
-      </View>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#4A90E2" />
+          </Pressable>
+          <ThemedText style={styles.title}>Rules & Help</ThemedText>
+          <View style={styles.placeholder} />
+        </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Classic Mode */}
@@ -153,6 +155,7 @@ export default function RulesScreen() {
           </ThemedText>
         </View>
       </ScrollView>
+      </SafeAreaView>
     </ThemedView>
   );
 }
