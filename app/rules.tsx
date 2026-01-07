@@ -4,17 +4,21 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';
+import { useTheme } from '../contexts/ThemeContext';
+import { Colors } from '../constants/theme';
 import { S } from '../styles';
 
 export default function RulesScreen() {
   const router = useRouter();
+  const { isDark } = useTheme();
+  const colors = isDark ? Colors.dark : Colors.light;
 
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#4A90E2" />
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </Pressable>
           <ThemedText style={styles.title}>Rules & Help</ThemedText>
           <View style={styles.placeholder} />
@@ -24,7 +28,7 @@ export default function RulesScreen() {
         {/* Classic Mode */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="person" size={24} color="#4A90E2" />
+            <Ionicons name="person" size={24} color={colors.primary} />
             <ThemedText style={styles.sectionTitle}>Classic Mode</ThemedText>
           </View>
           <ThemedText style={styles.paragraph}>
@@ -49,8 +53,8 @@ export default function RulesScreen() {
         {/* Party/Drink Mode */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="beer" size={24} color="#E24A90" />
-            <ThemedText style={[styles.sectionTitle, { color: '#E24A90' }]}>
+            <Ionicons name="beer" size={24} color={colors.secondary} />
+            <ThemedText style={[styles.sectionTitle, { color: colors.secondary }]}>
               Party Mode
             </ThemedText>
           </View>
@@ -76,8 +80,8 @@ export default function RulesScreen() {
         {/* Tips & Strategy */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="bulb" size={24} color="#FFC107" />
-            <ThemedText style={[styles.sectionTitle, { color: '#FFC107' }]}>
+            <Ionicons name="bulb" size={24} color={colors.chart5} />
+            <ThemedText style={[styles.sectionTitle, { color: colors.chart5 }]}>
               Tips & Strategy
             </ThemedText>
           </View>
@@ -103,8 +107,8 @@ export default function RulesScreen() {
         {/* Temperature Reference */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="thermometer" size={24} color="#FF5722" />
-            <ThemedText style={[styles.sectionTitle, { color: '#FF5722' }]}>
+            <Ionicons name="thermometer" size={24} color={colors.destructive} />
+            <ThemedText style={[styles.sectionTitle, { color: colors.destructive }]}>
               Temperature Reference
             </ThemedText>
           </View>
@@ -139,8 +143,8 @@ export default function RulesScreen() {
         {/* About */}
         <View style={[styles.section, { marginBottom: 40 }]}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="information-circle" size={24} color="#9C27B0" />
-            <ThemedText style={[styles.sectionTitle, { color: '#9C27B0' }]}>
+            <Ionicons name="information-circle" size={24} color={colors.accent} />
+            <ThemedText style={[styles.sectionTitle, { color: colors.accent }]}>
               About GeoDrink
             </ThemedText>
           </View>

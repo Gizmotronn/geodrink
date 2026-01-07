@@ -79,7 +79,7 @@ export const S = {
       borderRadius: 16,
       marginBottom: 32,
       borderWidth: 1,
-      borderColor: '#E0E0F0',
+      // borderColor set dynamically via useThemeColor
     },
     weatherLeft: {
       flexDirection: 'row',
@@ -373,7 +373,7 @@ export const S = {
       opacity: 0.4,
     },
     buttonText: {
-      color: '#FFFFFF',
+      color: '#FFFFFF', // Default - should be overridden with theme colors in components
       fontSize: 18,
       fontWeight: '600',
     },
@@ -509,7 +509,7 @@ export const S = {
       gap: 12,
     },
     continueButtonText: {
-      color: '#FFFFFF',
+      color: '#FFFFFF', // Default - should be overridden with theme colors in components
       fontSize: 18,
       fontWeight: '600',
     },

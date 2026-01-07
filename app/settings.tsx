@@ -6,12 +6,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';
 import { useTheme } from '../contexts/ThemeContext';
+import { Colors } from '../constants/theme';
 import { S } from '../styles';
 import { getTempUnit, setTempUnit } from '../utils/storage';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { isDark, toggleDarkMode } = useTheme();
+  const colors = isDark ? Colors.dark : Colors.light;
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [hapticEnabled, setHapticEnabled] = useState(true);
   const [celsiusEnabled, setCelsiusEnabled] = useState(true);
@@ -35,7 +37,7 @@ export default function SettingsScreen() {
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#4A90E2" />
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </Pressable>
           <ThemedText style={styles.title}>Settings</ThemedText>
           <View style={styles.placeholder} />
@@ -48,7 +50,7 @@ export default function SettingsScreen() {
           
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
-              <Ionicons name="thermometer-outline" size={24} color="#4A90E2" />
+              <Ionicons name="thermometer-outline" size={24} color={colors.primary} />
               <View style={styles.settingText}>
                 <ThemedText style={styles.settingLabel}>Temperature Unit</ThemedText>
                 <ThemedText style={styles.settingDescription}>
@@ -59,7 +61,7 @@ export default function SettingsScreen() {
             <Switch
               value={celsiusEnabled}
               onValueChange={toggleTempUnit}
-              trackColor={{ false: '#767577', true: '#4A90E2' }}
+              trackColor={{ false: '#767577', true: colors.primary }}
             />
           </View>
         </View>
@@ -70,7 +72,7 @@ export default function SettingsScreen() {
           
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
-              <Ionicons name="volume-high-outline" size={24} color="#4A90E2" />
+              <Ionicons name="volume-high-outline" size={24} color={colors.primary} />
               <View style={styles.settingText}>
                 <ThemedText style={styles.settingLabel}>Sound Effects</ThemedText>
                 <ThemedText style={styles.settingDescription}>
@@ -81,13 +83,13 @@ export default function SettingsScreen() {
             <Switch
               value={soundEnabled}
               onValueChange={setSoundEnabled}
-              trackColor={{ false: '#767577', true: '#4A90E2' }}
+              trackColor={{ false: '#767577', true: colors.primary }}
             />
           </View>
 
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
-              <Ionicons name="phone-portrait-outline" size={24} color="#4A90E2" />
+              <Ionicons name="phone-portrait-outline" size={24} color={colors.primary} />
               <View style={styles.settingText}>
                 <ThemedText style={styles.settingLabel}>Haptic Feedback</ThemedText>
                 <ThemedText style={styles.settingDescription}>
@@ -98,7 +100,7 @@ export default function SettingsScreen() {
             <Switch
               value={hapticEnabled}
               onValueChange={setHapticEnabled}
-              trackColor={{ false: '#767577', true: '#4A90E2' }}
+              trackColor={{ false: '#767577', true: colors.primary }}
             />
           </View>
         </View>
@@ -109,7 +111,7 @@ export default function SettingsScreen() {
           
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
-              <Ionicons name="moon-outline" size={24} color="#4A90E2" />
+              <Ionicons name="moon-outline" size={24} color={colors.primary} />
               <View style={styles.settingText}>
                 <ThemedText style={styles.settingLabel}>Dark Mode</ThemedText>
                 <ThemedText style={styles.settingDescription}>
@@ -120,7 +122,7 @@ export default function SettingsScreen() {
             <Switch
               value={isDark}
               onValueChange={toggleDarkMode}
-              trackColor={{ false: '#767577', true: '#4A90E2' }}
+              trackColor={{ false: '#767577', true: colors.primary }}
             />
           </View>
         </View>
@@ -131,7 +133,7 @@ export default function SettingsScreen() {
           
           <Pressable style={styles.optionItem}>
             <View style={styles.settingInfo}>
-              <Ionicons name="speedometer-outline" size={24} color="#50C878" />
+              <Ionicons name="speedometer-outline" size={24} color={colors.chart3} />
               <View style={styles.settingText}>
                 <ThemedText style={styles.settingLabel}>Tolerance Range</ThemedText>
                 <ThemedText style={styles.settingDescription}>
@@ -139,12 +141,12 @@ export default function SettingsScreen() {
                 </ThemedText>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={24} color="#999" />
+            <Ionicons name="chevron-forward" size={24} color={colors.mutedForeground} />
           </Pressable>
 
           <Pressable style={styles.optionItem}>
             <View style={styles.settingInfo}>
-              <Ionicons name="globe-outline" size={24} color="#50C878" />
+              <Ionicons name="globe-outline" size={24} color={colors.chart3} />
               <View style={styles.settingText}>
                 <ThemedText style={styles.settingLabel}>City Selection</ThemedText>
                 <ThemedText style={styles.settingDescription}>
@@ -152,7 +154,7 @@ export default function SettingsScreen() {
                 </ThemedText>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={24} color="#999" />
+            <Ionicons name="chevron-forward" size={24} color={colors.mutedForeground} />
           </Pressable>
         </View>
 
@@ -162,7 +164,7 @@ export default function SettingsScreen() {
           
           <Pressable style={styles.optionItem}>
             <View style={styles.settingInfo}>
-              <Ionicons name="information-circle-outline" size={24} color="#9C27B0" />
+              <Ionicons name="information-circle-outline" size={24} color={colors.accent} />
               <View style={styles.settingText}>
                 <ThemedText style={styles.settingLabel}>Version</ThemedText>
                 <ThemedText style={styles.settingDescription}>1.0.0</ThemedText>
@@ -172,7 +174,7 @@ export default function SettingsScreen() {
 
           <Pressable style={styles.optionItem}>
             <View style={styles.settingInfo}>
-              <Ionicons name="heart-outline" size={24} color="#E24A90" />
+              <Ionicons name="heart-outline" size={24} color={colors.secondary} />
               <View style={styles.settingText}>
                 <ThemedText style={styles.settingLabel}>Rate App</ThemedText>
                 <ThemedText style={styles.settingDescription}>
@@ -180,12 +182,12 @@ export default function SettingsScreen() {
                 </ThemedText>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={24} color="#999" />
+            <Ionicons name="chevron-forward" size={24} color={colors.mutedForeground} />
           </Pressable>
 
           <Pressable style={styles.optionItem}>
             <View style={styles.settingInfo}>
-              <Ionicons name="share-social-outline" size={24} color="#4A90E2" />
+              <Ionicons name="share-social-outline" size={24} color={colors.primary} />
               <View style={styles.settingText}>
                 <ThemedText style={styles.settingLabel}>Share with Friends</ThemedText>
                 <ThemedText style={styles.settingDescription}>
@@ -193,7 +195,7 @@ export default function SettingsScreen() {
                 </ThemedText>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={24} color="#999" />
+            <Ionicons name="chevron-forward" size={24} color={colors.mutedForeground} />
           </Pressable>
         </View>
 

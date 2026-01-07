@@ -41,6 +41,8 @@ export default function GameScreen() {
   const themeStyles = getThemeStyles(isDark);
   const styles = gameStyles;
 
+  const [cityOrder, setCityOrder] = useState<CityData[]>([]); // Pre-generated unique cities
+
   useEffect(() => {
     const runInit = async () => {
       await initGame();
@@ -52,7 +54,14 @@ export default function GameScreen() {
     };
   }, []);
 
-  const [cityOrder, setCityOrder] = useState<CityData[]>([]); // Pre-generated unique cities
+  // Load the first city once cityOrder is populated
+  useEffect(() => {
+    if (cityOrder.length > 0 && !cityData && currentCityIndex === 1 && gameState === 'playing') {
+      const firstCity = cityOrder[0];
+      setCityData(firstCity);
+      setLoading(false);
+    }
+  }, [cityOrder, cityData, currentCityIndex, gameState]);
 
   const getUniqueRandomCities = (count: number): City[] => {
     const shuffled = [...CITIES].sort(() => Math.random() - 0.5);
@@ -70,7 +79,7 @@ export default function GameScreen() {
       cities.push({ ...city, temperature: Math.round(temperature) });
     }
     setCityOrder(cities);
-    setCityData(cities[0]);
+    // The useEffect will handle setting the first city
   };
 
   const loadTempUnit = async () => {
@@ -78,12 +87,13 @@ export default function GameScreen() {
     setTempUnit(unit);
   };
 
-  const loadNewCity = async () => {
-    if (currentCityIndex > totalCities) {
+  const loadNewCity = async (cityIndex?: number) => {
+    const indexToUse = cityIndex !== undefined ? cityIndex : currentCityIndex;
+    if (indexToUse > totalCities) {
       setGameState('roundComplete');
       return;
     }
-    setCityData(cityOrder[currentCityIndex - 1]);
+    setCityData(cityOrder[indexToUse - 1]);
     setGameState('playing');
     setUserGuess('');
     setLoading(false);
@@ -126,21 +136,18 @@ export default function GameScreen() {
       await updateGameStats(differenceCelsius, 0);
     }
 
-    // End round if last city
-    if (currentCityIndex >= totalCities) {
-      setGameState('roundComplete');
-    } else {
-      setGameState('revealed');
-    }
+    // Always show result first, regardless of whether it's the last city
+    setGameState('revealed');
   };
 
   const handleNextCity = () => {
     if (mode === 'party') {
       // Advance to next player/city
       if (currentCityIndex < totalCities) {
-        setCurrentCityIndex(prev => prev + 1);
+        const nextIndex = currentCityIndex + 1;
+        setCurrentCityIndex(nextIndex);
         setCurrentPlayerIndex((prev) => (prev + 1) % playerCount);
-        loadNewCity();
+        loadNewCity(nextIndex);
       } else {
         setCurrentCityIndex(prev => prev + 1);
         setGameState('roundComplete');
@@ -148,8 +155,9 @@ export default function GameScreen() {
     } else {
       // Classic mode
       if (currentCityIndex < totalCities) {
-        setCurrentCityIndex(prev => prev + 1);
-        loadNewCity();
+        const nextIndex = currentCityIndex + 1;
+        setCurrentCityIndex(nextIndex);
+        loadNewCity(nextIndex);
       } else {
         setGameState('roundComplete');
       }
@@ -164,8 +172,7 @@ export default function GameScreen() {
     setGameState('playing');
     setCityData(null);
     setUserGuess('');
-    //
-    if (cityOrder.length > 0) setCityData(cityOrder[0]);
+    // Load the first city for the new round
     loadNewCity();
   };
 
@@ -468,7 +475,7 @@ export default function GameScreen() {
                 {mode === 'classic' && (
                   <View style={styles.scoreItem}>
                     <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Progress</Text>
-                    <Text style={styles.scoreNumber}>{currentCityIndex - 1}/{totalCities}</Text>
+                    <Text style={styles.scoreNumber}>{currentCityIndex}/{totalCities}</Text>
                   </View>
                 )}
               </>
