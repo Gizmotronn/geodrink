@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "geodrink",
+    "name": "GeoDrink",
     "slug": "geodrink",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -24,7 +24,12 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "GeoDrink",
+      "shortName": "GeoDrink",
+      "themeColor": "#1F4D7A",
+      "backgroundColor": "#E6F4FE",
+      "display": "standalone"
     },
     "plugins": [
       "expo-router",

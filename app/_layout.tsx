@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
+import { SessionProvider } from '../contexts/SessionContext';
 
 function RootLayoutContent() {
   const { isDark } = useTheme();
@@ -26,7 +27,9 @@ function RootLayoutContent() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <RootLayoutContent />
+      <SessionProvider>
+        <RootLayoutContent />
+      </SessionProvider>
     </ThemeProvider>
   );
 };;

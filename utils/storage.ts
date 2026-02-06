@@ -13,6 +13,7 @@ export interface GameStats {
 const STATS_KEY = '@geodrink_stats';
 const TEMP_UNIT_KEY = '@geodrink_temp_unit';
 const DARK_MODE_KEY = '@geodrink_dark_mode';
+const SESSION_ACTIVE_KEY = '@geodrink_session_active';
 
 export async function getGameStats(): Promise<GameStats> {
   try {
@@ -104,6 +105,19 @@ export async function getDarkMode(): Promise<boolean> {
 
 export async function setDarkMode(enabled: boolean): Promise<void> {
   await AsyncStorage.setItem(DARK_MODE_KEY, enabled ? 'true' : 'false');
+}
+
+export async function getSessionActive(): Promise<boolean> {
+  try {
+    const sessionActive = await AsyncStorage.getItem(SESSION_ACTIVE_KEY);
+    return sessionActive === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function setSessionActive(active: boolean): Promise<void> {
+  await AsyncStorage.setItem(SESSION_ACTIVE_KEY, active ? 'true' : 'false');
 }
 
 export function celsiusToFahrenheit(celsius: number): number {

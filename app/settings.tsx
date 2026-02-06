@@ -1,17 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Switch, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSession } from '../contexts/SessionContext';
 import { Colors } from '../constants/theme';
 import { S } from '../styles';
 import { getTempUnit, setTempUnit } from '../utils/storage';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { endSession } = useSession();
   const { isDark, toggleDarkMode } = useTheme();
   const colors = isDark ? Colors.dark : Colors.light;
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -30,6 +32,24 @@ export default function SettingsScreen() {
   const toggleTempUnit = async (value: boolean) => {
     setCelsiusEnabled(value);
     await setTempUnit(value ? 'C' : 'F');
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Log out',
+      'This will return you to the landing page until you enter the app again.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log out',
+          style: 'destructive',
+          onPress: async () => {
+            await endSession();
+            router.replace('/');
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -196,6 +216,32 @@ export default function SettingsScreen() {
               </View>
             </View>
             <Ionicons name="chevron-forward" size={24} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
+
+        <View style={{ height: 40 }} />
+
+        <View style={styles.section}>
+          <Pressable
+            style={[
+              styles.optionItem,
+              {
+                borderWidth: 1,
+                borderColor: colors.destructive,
+                backgroundColor: `${colors.destructive}12`,
+              },
+            ]}
+            onPress={handleLogout}
+          >
+            <View style={styles.settingInfo}>
+              <Ionicons name="log-out-outline" size={24} color={colors.destructive} />
+              <View style={styles.settingText}>
+                <ThemedText style={[styles.settingLabel, { color: colors.destructive }]}>Log out</ThemedText>
+                <ThemedText style={styles.settingDescription}>
+                  Show landing page until user re-enters app
+                </ThemedText>
+              </View>
+            </View>
           </Pressable>
         </View>
 

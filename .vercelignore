@@ -1,0 +1,18 @@
+# Dependencies / local caches
+node_modules
+.expo
+.git
+
+# Native projects not needed for web deploy
+ios
+android
+
+# Build outputs generated locally
+dist
+web-build
+
+# Logs / local artifacts
+*.log
+xcodebuild-debug.log
+xcodebuild-debug-ios.log
+.DS_Store

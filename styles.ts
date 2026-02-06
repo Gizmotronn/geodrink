@@ -37,6 +37,28 @@ export const S = {
     safeArea: {
       flex: 1,
     },
+    loadingStateContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    landingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      gap: 16,
+    },
+    landingTitle: {
+      fontSize: 44,
+      fontWeight: '700',
+      letterSpacing: -1,
+    },
+    landingSubtitle: {
+      fontSize: 16,
+      textAlign: 'center',
+      marginBottom: 12,
+    },
     headerBar: {
       flexDirection: 'row',
       justifyContent: 'space-between',

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSession } from '../contexts/SessionContext';
 import { Colors } from '../constants/theme';
 import { CITIES, City } from '../data/cities';
 import { loadSounds, playCorrectSound, playWrongSound, unloadSounds } from '../services/audio';
@@ -20,6 +21,7 @@ interface CityData extends City {
 
 export default function GameScreen() {
   const router = useRouter();
+  const { startSession } = useSession();
   const { isDark } = useTheme();
   const { mode, playerCount: playerCountParam, names: namesParam } = useLocalSearchParams<{ mode: string, playerCount?: string, names?: string }>();
   const [cityData, setCityData] = useState<CityData | null>(null);
@@ -42,6 +44,10 @@ export default function GameScreen() {
   const styles = gameStyles;
 
   const [cityOrder, setCityOrder] = useState<CityData[]>([]); // Pre-generated unique cities
+
+  useEffect(() => {
+    startSession();
+  }, [startSession]);
 
   useEffect(() => {
     const runInit = async () => {
@@ -487,4 +493,3 @@ export default function GameScreen() {
     </ThemedView>
   );
 }
-
