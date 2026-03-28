@@ -1,6 +1,6 @@
 {
-  "name": "GeoDrink",
-  "short_name": "GeoDrink",
+  "name": "Weathr",
+  "short_name": "Weathr",
   "description": "Party game based on geography and drinks.",
   "start_url": "/",
   "scope": "/",

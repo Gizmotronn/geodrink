@@ -10,10 +10,10 @@ export interface GameStats {
   gamesPlayed: number;
 }
 
-const STATS_KEY = '@geodrink_stats';
-const TEMP_UNIT_KEY = '@geodrink_temp_unit';
-const DARK_MODE_KEY = '@geodrink_dark_mode';
-const SESSION_ACTIVE_KEY = '@geodrink_session_active';
+const STATS_KEY = '@weathr_stats';
+const TEMP_UNIT_KEY = '@weathr_temp_unit';
+const DARK_MODE_KEY = '@weathr_dark_mode';
+const SESSION_ACTIVE_KEY = '@weathr_session_active';
 
 export async function getGameStats(): Promise<GameStats> {
   try {

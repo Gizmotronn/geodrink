@@ -145,11 +145,11 @@ export default function RulesScreen() {
           <View style={styles.sectionHeader}>
             <Ionicons name="information-circle" size={24} color={colors.accent} />
             <ThemedText style={[styles.sectionTitle, { color: colors.accent }]}>
-              About GeoDrink
+              About Weathr
             </ThemedText>
           </View>
           <ThemedText style={styles.paragraph}>
-            GeoDrink combines geography knowledge with real-time weather data to create
+            Weathr combines geography knowledge with real-time weather data to create
             a fun and educational game. Perfect for parties, pre-drinks, or solo play to
             test your world geography skills!
           </ThemedText>

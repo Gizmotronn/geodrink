@@ -198,7 +198,7 @@ export default function SettingsScreen() {
               <View style={styles.settingText}>
                 <ThemedText style={styles.settingLabel}>Rate App</ThemedText>
                 <ThemedText style={styles.settingDescription}>
-                  Enjoying GeoDrink?
+                  Enjoying Weathr?
                 </ThemedText>
               </View>
             </View>

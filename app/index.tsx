@@ -43,8 +43,8 @@ function LandingView({ onStart }: { onStart: () => Promise<void> }) {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.landingContainer}>
           <ThemedText style={[styles.landingTitle, { color: colors.foreground }]}>
-            GeoDrink
-          </ThemedText>
+            Weathr
+</ThemedText>
           <ThemedText style={[styles.landingSubtitle, { color: colors.mutedForeground }]}>
             Guess city temperatures. Someone drinks.
           </ThemedText>
