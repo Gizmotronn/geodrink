@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.liamar.weathr"
+      "bundleIdentifier": "com.atlasskyventures.weathr"
     },
     "android": {
       "adaptiveIcon": {
@@ -51,6 +51,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f2ad2b61-743a-4a07-9cfb-132dfeff821c"
+      }
+    },
+    "owner": "liamar"
   }
 }
