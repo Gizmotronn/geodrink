@@ -10,6 +10,7 @@ import { S } from "../styles";
 import { Colors } from "../constants/theme";
 import { useTheme } from "../contexts/ThemeContext";
 import { useSession } from "../contexts/SessionContext";
+import { useLanguage } from "../contexts/LanguageContext";
 const styles = S.home;
 
 export default function HomeScreen() {
@@ -36,6 +37,7 @@ export default function HomeScreen() {
 
 function LandingView({ onStart }: { onStart: () => Promise<void> }) {
   const { isDark } = useTheme();
+  const { t } = useLanguage();
   const colors = isDark ? Colors.dark : Colors.light;
 
   return (
@@ -43,10 +45,10 @@ function LandingView({ onStart }: { onStart: () => Promise<void> }) {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.landingContainer}>
           <ThemedText style={[styles.landingTitle, { color: colors.foreground }]}>
-            GeoDrink
+            Weathr
           </ThemedText>
           <ThemedText style={[styles.landingSubtitle, { color: colors.mutedForeground }]}>
-            Guess city temperatures. Someone drinks.
+            {t('landingSubtitle')}
           </ThemedText>
           <Pressable
             style={({ pressed }) => [
@@ -55,9 +57,12 @@ function LandingView({ onStart }: { onStart: () => Promise<void> }) {
               pressed && styles.buttonPressed,
             ]}
             onPress={onStart}
+            testID="enter-app-button"
+            accessibilityRole="button"
+            accessibilityLabel={t('enterApp')}
           >
             <ThemedText style={[styles.modeButtonText, { color: colors.primaryForeground }]}>
-              Enter App
+              {t('enterApp')}
             </ThemedText>
           </Pressable>
         </View>
@@ -69,6 +74,7 @@ function LandingView({ onStart }: { onStart: () => Promise<void> }) {
 function GameHomeView() {
   const router = useRouter();
   const { isDark } = useTheme();
+  const { t } = useLanguage();
   const colors = isDark ? Colors.dark : Colors.light;
   const [funFact, setFunFact] = useState<string>('');
 
@@ -88,6 +94,8 @@ function GameHomeView() {
           <Pressable
             style={({ pressed }) => [styles.settingsButton, pressed && styles.buttonPressed]}
             onPress={() => router.push('/settings')}
+            accessibilityRole="button"
+            accessibilityLabel={t('settings')}
           >
             <Ionicons name="settings-outline" size={24} color={colors.foreground} />
           </Pressable>
@@ -109,10 +117,10 @@ function GameHomeView() {
               </View>
               <View>
                 <ThemedText style={[styles.weatherSmallText, { color: colors.mutedForeground }]}>
-                  Current Location
+                  {t('currentLocation')}
                 </ThemedText>
                 <ThemedText style={[styles.weatherLocationText, { color: colors.foreground }]}>
-                  Auto-detected
+                  {t('autoDetected')}
                 </ThemedText>
               </View>
             </View>
@@ -132,9 +140,12 @@ function GameHomeView() {
                 pressed && styles.buttonPressed,
               ]}
               onPress={() => router.push('/game?mode=classic')}
+              testID="classic-mode-button"
+              accessibilityRole="button"
+              accessibilityLabel={t('classicMode')}
             >
               <ThemedText style={[styles.modeButtonText, { color: colors.primaryForeground }]}>
-                Classic Mode
+                {t('classicMode')}
               </ThemedText>
             </Pressable>
 
@@ -145,10 +156,30 @@ function GameHomeView() {
                 pressed && styles.buttonPressed,
               ]}
               onPress={() => router.push('/party-setup')}
+              testID="party-mode-button"
+              accessibilityRole="button"
+              accessibilityLabel={t('partyMode')}
             >
               <Ionicons name="people" size={20} color={colors.secondaryForeground} />
               <ThemedText style={[styles.modeButtonText, { color: colors.secondaryForeground }]}>
-                Party Mode
+                {t('partyMode')}
+              </ThemedText>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.modeButton,
+                { backgroundColor: colors.accent, shadowColor: colors.accent },
+                pressed && styles.buttonPressed,
+              ]}
+              onPress={() => router.push('/online-party' as never)}
+              testID="online-party-button"
+              accessibilityRole="button"
+              accessibilityLabel={t('onlineParty')}
+            >
+              <Ionicons name="wifi" size={20} color={colors.accentForeground} />
+              <ThemedText style={[styles.modeButtonText, { color: colors.accentForeground }]}>
+                {t('onlineParty')}
               </ThemedText>
             </Pressable>
           </View>
@@ -162,10 +193,12 @@ function GameHomeView() {
                 pressed && styles.buttonPressed,
               ]}
               onPress={() => router.push('/rules')}
+              accessibilityRole="button"
+              accessibilityLabel={t('rulesHelp')}
             >
               <Ionicons name="book-outline" size={20} color={colors.accent} />
               <ThemedText style={[styles.utilityButtonText, { color: colors.foreground }]}>
-                Rules/Help
+                {t('rulesHelp')}
               </ThemedText>
             </Pressable>
 
@@ -176,17 +209,19 @@ function GameHomeView() {
                 pressed && styles.buttonPressed,
               ]}
               onPress={() => router.push('/settings')}
+              accessibilityRole="button"
+              accessibilityLabel={t('settings')}
             >
               <Ionicons name="settings-outline" size={20} color={colors.accent} />
               <ThemedText style={[styles.utilityButtonText, { color: colors.foreground }]}>
-                Settings
+                {t('settings')}
               </ThemedText>
             </Pressable>
           </View>
 
           {/* Fun Fact Card */}
           <View style={[styles.funFactContainer, { backgroundColor: colors.card, borderLeftColor: colors.primary }]}>
-            <ThemedText style={[styles.funFactLabel, { color: colors.primary }]}>Fun Fact</ThemedText>
+            <ThemedText style={[styles.funFactLabel, { color: colors.primary }]}>{t('funFact')}</ThemedText>
             <ThemedText style={[styles.funFact, { color: colors.cardForeground }]}>{funFact}</ThemedText>
           </View>
         </ScrollView>

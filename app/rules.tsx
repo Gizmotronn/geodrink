@@ -32,7 +32,7 @@ export default function RulesScreen() {
             <ThemedText style={styles.sectionTitle}>Classic Mode</ThemedText>
           </View>
           <ThemedText style={styles.paragraph}>
-            Test your geography and weather knowledge solo!
+            Test your geography and weather knowledge at your own pace.
           </ThemedText>
           <View style={styles.rulesList}>
             <ThemedText style={styles.rule}>
@@ -50,26 +50,26 @@ export default function RulesScreen() {
           </View>
         </View>
 
-        {/* Party/Drink Mode */}
+        {/* Playing with friends */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="beer" size={24} color={colors.secondary} />
+            <Ionicons name="people" size={24} color={colors.secondary} />
             <ThemedText style={[styles.sectionTitle, { color: colors.secondary }]}>
-              Party Mode
+              Playing with friends
             </ThemedText>
           </View>
           <ThemedText style={styles.paragraph}>
-            The social drinking game version!
+            A little extra for when you&apos;re playing with friends.
           </ThemedText>
           <View style={styles.rulesList}>
             <ThemedText style={styles.rule}>
               • Take turns guessing the temperature
             </ThemedText>
             <ThemedText style={styles.rule}>
-              • Within 2°C? Everyone else drinks! 🎉
+              • Guess right? Everyone else drinks
             </ThemedText>
             <ThemedText style={styles.rule}>
-              • More than 2°C off? You drink! 😅
+              • Guess wrong? You drink
             </ThemedText>
             <ThemedText style={styles.rule}>
               • Pass the phone around the group
@@ -145,13 +145,13 @@ export default function RulesScreen() {
           <View style={styles.sectionHeader}>
             <Ionicons name="information-circle" size={24} color={colors.accent} />
             <ThemedText style={[styles.sectionTitle, { color: colors.accent }]}>
-              About GeoDrink
+              About Weathr
             </ThemedText>
           </View>
           <ThemedText style={styles.paragraph}>
-            GeoDrink combines geography knowledge with real-time weather data to create
-            a fun and educational game. Perfect for parties, pre-drinks, or solo play to
-            test your world geography skills!
+            Weathr combines geography knowledge with real-time weather data to create
+            a fun and educational game. Perfect for a quick challenge or a
+            group game that tests your world geography skills!
           </ThemedText>
           <ThemedText style={[styles.paragraph, { marginTop: 10 }]}>
             Temperature data is fetched in real-time, so the game is always current and

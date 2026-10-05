@@ -1,4 +1,4 @@
-const CACHE_NAME = 'geodrink-v1';
+const CACHE_NAME = 'weathr-v1';
 const OFFLINE_URL = '/';
 
 self.addEventListener('install', (event) => {

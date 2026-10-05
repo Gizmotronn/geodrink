@@ -1,5 +1,5 @@
 {
-  "name": "geodrink",
+  "name": "weathr",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -8,7 +8,10 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "sucrase-node tests/run-tests.ts",
+    "e2e:build": "expo export --platform web --output-dir dist-e2e",
+    "e2e": "yarn e2e:build && start-server-and-test \"node scripts/serve-static.js dist-e2e 8081\" http://127.0.0.1:8081 \"cypress run --e2e --browser chrome\""
   },
   "dependencies": {
     "@babel/core": "^7.28.5",
@@ -46,9 +49,11 @@
     "@react-native/metro-config": "^0.83.1",
     "@types/react": "~19.1.0",
     "babel-plugin-module-resolver": "^5.0.2",
+    "cypress": "^15.17.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "metro-resolver": "^0.83.3",
+    "start-server-and-test": "^3.0.11",
     "typescript": "~5.9.2"
   },
   "private": true

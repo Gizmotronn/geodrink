@@ -7,14 +7,17 @@ import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSession } from '../contexts/SessionContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Colors } from '../constants/theme';
 import { S } from '../styles';
-import { getTempUnit, setTempUnit } from '../utils/storage';
+import { LANGUAGE_OPTIONS } from '../utils/i18n';
+import { getSoundEffectsEnabled, getTempUnit, setSoundEffectsEnabled, setTempUnit } from '../utils/storage';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { endSession } = useSession();
   const { isDark, toggleDarkMode } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const colors = isDark ? Colors.dark : Colors.light;
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [hapticEnabled, setHapticEnabled] = useState(true);
@@ -25,8 +28,12 @@ export default function SettingsScreen() {
   }, []);
 
   const loadSettings = async () => {
-    const unit = await getTempUnit();
+    const [unit, soundEffectsEnabled] = await Promise.all([
+      getTempUnit(),
+      getSoundEffectsEnabled(),
+    ]);
     setCelsiusEnabled(unit === 'C');
+    setSoundEnabled(soundEffectsEnabled);
   };
 
   const toggleTempUnit = async (value: boolean) => {
@@ -34,14 +41,19 @@ export default function SettingsScreen() {
     await setTempUnit(value ? 'C' : 'F');
   };
 
+  const toggleSoundEffects = async (value: boolean) => {
+    setSoundEnabled(value);
+    await setSoundEffectsEnabled(value);
+  };
+
   const handleLogout = () => {
     Alert.alert(
-      'Log out',
-      'This will return you to the landing page until you enter the app again.',
+      t('logoutConfirmTitle'),
+      t('logoutConfirmMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Log out',
+          text: t('logout'),
           style: 'destructive',
           onPress: async () => {
             await endSession();
@@ -56,25 +68,25 @@ export default function SettingsScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('back')}>
             <Ionicons name="arrow-back" size={24} color={colors.primary} />
           </Pressable>
-          <ThemedText style={styles.title}>Settings</ThemedText>
+          <ThemedText style={styles.title}>{t('settings')}</ThemedText>
           <View style={styles.placeholder} />
         </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Game Settings */}
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Game Settings</ThemedText>
+          <ThemedText style={styles.sectionTitle}>{t('gameSettings')}</ThemedText>
           
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
               <Ionicons name="thermometer-outline" size={24} color={colors.primary} />
               <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>Temperature Unit</ThemedText>
+                <ThemedText style={styles.settingLabel}>{t('temperatureUnit')}</ThemedText>
                 <ThemedText style={styles.settingDescription}>
-                  {celsiusEnabled ? 'Celsius (°C)' : 'Fahrenheit (°F)'}
+                  {celsiusEnabled ? t('celsius') : t('fahrenheit')}
                 </ThemedText>
               </View>
             </View>
@@ -84,25 +96,67 @@ export default function SettingsScreen() {
               trackColor={{ false: '#767577', true: colors.primary }}
             />
           </View>
+
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
+              <Ionicons name="language-outline" size={24} color={colors.primary} />
+              <View style={styles.settingText}>
+                <ThemedText style={styles.settingLabel}>{t('language')}</ThemedText>
+                <ThemedText style={styles.settingDescription}>{t('languageDescription')}</ThemedText>
+                <View style={styles.languageGrid}>
+                  {LANGUAGE_OPTIONS.map(option => {
+                    const selected = option.code === language;
+                    return (
+                      <Pressable
+                        key={option.code}
+                        style={[
+                          styles.languageButton,
+                          {
+                            backgroundColor: selected ? colors.primary : colors.background,
+                            borderColor: selected ? colors.primary : colors.border,
+                          },
+                        ]}
+                        onPress={() => setLanguage(option.code)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected }}
+                        accessibilityLabel={`${t('language')}: ${option.label}`}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.languageButtonText,
+                            { color: selected ? colors.primaryForeground : colors.foreground },
+                          ]}
+                        >
+                          {option.label}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            </View>
+          </View>
         </View>
 
         {/* Audio & Haptics */}
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Audio & Haptics</ThemedText>
+          <ThemedText style={styles.sectionTitle}>{t('audioHaptics')}</ThemedText>
           
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
               <Ionicons name="volume-high-outline" size={24} color={colors.primary} />
               <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>Sound Effects</ThemedText>
+                <ThemedText style={styles.settingLabel}>{t('soundEffects')}</ThemedText>
                 <ThemedText style={styles.settingDescription}>
-                  Play sounds for correct/incorrect answers
+                  {t('soundEffectsDescription')}
                 </ThemedText>
               </View>
             </View>
             <Switch
               value={soundEnabled}
-              onValueChange={setSoundEnabled}
+              onValueChange={toggleSoundEffects}
+              testID="sound-effects-switch"
+              accessibilityLabel={t('soundEffects')}
               trackColor={{ false: '#767577', true: colors.primary }}
             />
           </View>
@@ -111,9 +165,9 @@ export default function SettingsScreen() {
             <View style={styles.settingInfo}>
               <Ionicons name="phone-portrait-outline" size={24} color={colors.primary} />
               <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>Haptic Feedback</ThemedText>
+                <ThemedText style={styles.settingLabel}>{t('hapticFeedback')}</ThemedText>
                 <ThemedText style={styles.settingDescription}>
-                  Vibrate on button presses
+                  {t('hapticFeedbackDescription')}
                 </ThemedText>
               </View>
             </View>
@@ -127,15 +181,15 @@ export default function SettingsScreen() {
 
         {/* Appearance */}
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Appearance</ThemedText>
+          <ThemedText style={styles.sectionTitle}>{t('appearance')}</ThemedText>
           
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
               <Ionicons name="moon-outline" size={24} color={colors.primary} />
               <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>Dark Mode</ThemedText>
+                <ThemedText style={styles.settingLabel}>{t('darkMode')}</ThemedText>
                 <ThemedText style={styles.settingDescription}>
-                  Invert all colors (experimental)
+                  {t('darkModeDescription')}
                 </ThemedText>
               </View>
             </View>
@@ -149,15 +203,15 @@ export default function SettingsScreen() {
 
         {/* Difficulty Settings */}
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Difficulty</ThemedText>
+          <ThemedText style={styles.sectionTitle}>{t('difficulty')}</ThemedText>
           
           <Pressable style={styles.optionItem}>
             <View style={styles.settingInfo}>
               <Ionicons name="speedometer-outline" size={24} color={colors.chart3} />
               <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>Tolerance Range</ThemedText>
+                <ThemedText style={styles.settingLabel}>{t('toleranceRange')}</ThemedText>
                 <ThemedText style={styles.settingDescription}>
-                  Currently: ±2°C
+                  {t('toleranceCurrent')}
                 </ThemedText>
               </View>
             </View>
@@ -168,9 +222,9 @@ export default function SettingsScreen() {
             <View style={styles.settingInfo}>
               <Ionicons name="globe-outline" size={24} color={colors.chart3} />
               <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>City Selection</ThemedText>
+                <ThemedText style={styles.settingLabel}>{t('citySelection')}</ThemedText>
                 <ThemedText style={styles.settingDescription}>
-                  All cities worldwide
+                  {t('citySelectionDescription')}
                 </ThemedText>
               </View>
             </View>
@@ -180,13 +234,13 @@ export default function SettingsScreen() {
 
         {/* About */}
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>About</ThemedText>
+          <ThemedText style={styles.sectionTitle}>{t('about')}</ThemedText>
           
           <Pressable style={styles.optionItem}>
             <View style={styles.settingInfo}>
               <Ionicons name="information-circle-outline" size={24} color={colors.accent} />
               <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>Version</ThemedText>
+                <ThemedText style={styles.settingLabel}>{t('version')}</ThemedText>
                 <ThemedText style={styles.settingDescription}>1.0.0</ThemedText>
               </View>
             </View>
@@ -196,9 +250,9 @@ export default function SettingsScreen() {
             <View style={styles.settingInfo}>
               <Ionicons name="heart-outline" size={24} color={colors.secondary} />
               <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>Rate App</ThemedText>
+                <ThemedText style={styles.settingLabel}>{t('rateApp')}</ThemedText>
                 <ThemedText style={styles.settingDescription}>
-                  Enjoying GeoDrink?
+                  {t('rateAppDescription')}
                 </ThemedText>
               </View>
             </View>
@@ -209,9 +263,9 @@ export default function SettingsScreen() {
             <View style={styles.settingInfo}>
               <Ionicons name="share-social-outline" size={24} color={colors.primary} />
               <View style={styles.settingText}>
-                <ThemedText style={styles.settingLabel}>Share with Friends</ThemedText>
+                <ThemedText style={styles.settingLabel}>{t('shareWithFriends')}</ThemedText>
                 <ThemedText style={styles.settingDescription}>
-                  Tell others about the game
+                  {t('shareDescription')}
                 </ThemedText>
               </View>
             </View>
@@ -236,9 +290,9 @@ export default function SettingsScreen() {
             <View style={styles.settingInfo}>
               <Ionicons name="log-out-outline" size={24} color={colors.destructive} />
               <View style={styles.settingText}>
-                <ThemedText style={[styles.settingLabel, { color: colors.destructive }]}>Log out</ThemedText>
+                <ThemedText style={[styles.settingLabel, { color: colors.destructive }]}>{t('logout')}</ThemedText>
                 <ThemedText style={styles.settingDescription}>
-                  Show landing page until user re-enters app
+                  {t('logoutDescription')}
                 </ThemedText>
               </View>
             </View>

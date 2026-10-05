@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Colors } from '../constants/theme';
 
 export default function PartySetupScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
+  const { t } = useLanguage();
   const colors = isDark ? Colors.dark : Colors.light;
   const [playerCount, setPlayerCount] = useState<number | null>(null);
   const [names, setNames] = useState<string[]>([]);
@@ -48,23 +50,29 @@ export default function PartySetupScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={styles.topHeader}>
-        <Pressable onPress={handleBack} style={styles.backButton}>
+        <Pressable onPress={handleBack} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('back')}>
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Party Setup</Text>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>{t('partySetup')}</Text>
         <View style={styles.placeholder} />
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.iconHeader}>
           <Ionicons name="beer" size={40} color={colors.secondary} />
-          <Text style={[styles.title, { color: colors.secondary }]}>Party Mode Setup</Text>
+          <Text style={[styles.title, { color: colors.secondary }]}>{t('partyModeSetup')}</Text>
         </View>
         {step === 1 && (
           <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.foreground }]}>How many players?</Text>
+            <Text style={[styles.label, { color: colors.foreground }]}>{t('howManyPlayers')}</Text>
             <View style={styles.countContainer}>
               {[2,3,4,5,6,7,8].map(count => (
-                <Pressable key={count} style={[styles.countButton, { backgroundColor: colors.secondary }]} onPress={() => handleCountSelect(count)}>
+                <Pressable
+                  key={count}
+                  style={[styles.countButton, { backgroundColor: colors.secondary }]}
+                  onPress={() => handleCountSelect(count)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${count}`}
+                >
                   <Text style={[styles.countText, { color: colors.secondaryForeground }]}>{count}</Text>
                 </Pressable>
               ))}
@@ -73,20 +81,27 @@ export default function PartySetupScreen() {
         )}
         {step === 2 && (
           <View style={styles.section}>
-            <Text style={[styles.label, { color: colors.foreground }]}>Enter player names:</Text>
+            <Text style={[styles.label, { color: colors.foreground }]}>{t('enterPlayerNames')}</Text>
             {names.map((name, idx) => (
               <TextInput
                 key={idx}
                 style={[styles.nameInput, { borderBottomColor: colors.secondary, color: colors.foreground }]}
                 value={name}
                 onChangeText={text => handleNameChange(idx, text)}
-                placeholder={`Player ${idx + 1}`}
+                placeholder={t('playerPlaceholder', { number: idx + 1 })}
                 placeholderTextColor={colors.mutedForeground}
                 autoCapitalize="words"
+                accessibilityLabel={t('playerPlaceholder', { number: idx + 1 })}
               />
             ))}
-            <Pressable style={[styles.startButton, { backgroundColor: colors.secondary }, names.some(n => !n.trim()) && styles.disabledButton]} onPress={handleStart} disabled={names.some(n => !n.trim())}>
-              <Text style={[styles.startText, { color: colors.secondaryForeground }]}>Start Game</Text>
+            <Pressable
+              style={[styles.startButton, { backgroundColor: colors.secondary }, names.some(n => !n.trim()) && styles.disabledButton]}
+              onPress={handleStart}
+              disabled={names.some(n => !n.trim())}
+              accessibilityRole="button"
+              accessibilityLabel={t('startGame')}
+            >
+              <Text style={[styles.startText, { color: colors.secondaryForeground }]}>{t('startGame')}</Text>
               <Ionicons name="arrow-forward" size={20} color={colors.secondaryForeground} />
             </Pressable>
           </View>

@@ -709,6 +709,22 @@ export const S = {
       fontSize: 13,
       opacity: 0.6,
     },
+    languageGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 10,
+    },
+    languageButton: {
+      paddingVertical: 9,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+    },
+    languageButtonText: {
+      fontSize: 13,
+      fontWeight: '700',
+    },
   }),
 
   // Modal screen styles (app/modal.tsx)

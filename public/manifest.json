@@ -1,7 +1,7 @@
 {
-  "name": "GeoDrink",
-  "short_name": "GeoDrink",
-  "description": "Party game based on geography and drinks.",
+  "name": "Weathr",
+  "short_name": "Weathr",
+  "description": "Temperature guessing game based on real-time weather.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

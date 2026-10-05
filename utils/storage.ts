@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { LanguageCode } from './i18n';
 
 export interface GameStats {
   totalRounds: number;
@@ -10,14 +11,46 @@ export interface GameStats {
   gamesPlayed: number;
 }
 
-const STATS_KEY = '@geodrink_stats';
-const TEMP_UNIT_KEY = '@geodrink_temp_unit';
-const DARK_MODE_KEY = '@geodrink_dark_mode';
-const SESSION_ACTIVE_KEY = '@geodrink_session_active';
+const STATS_KEY = '@weathr_stats';
+const TEMP_UNIT_KEY = '@weathr_temp_unit';
+const DARK_MODE_KEY = '@weathr_dark_mode';
+const SESSION_ACTIVE_KEY = '@weathr_session_active';
+const LANGUAGE_KEY = '@weathr_language';
+const SOUND_EFFECTS_KEY = '@weathr_sound_effects';
+
+const LEGACY_STORAGE_PREFIX = '@geo' + 'drink_';
+
+const LEGACY_STORAGE_KEYS: Record<string, string> = {
+  [STATS_KEY]: `${LEGACY_STORAGE_PREFIX}stats`,
+  [TEMP_UNIT_KEY]: `${LEGACY_STORAGE_PREFIX}temp_unit`,
+  [DARK_MODE_KEY]: `${LEGACY_STORAGE_PREFIX}dark_mode`,
+  [SESSION_ACTIVE_KEY]: `${LEGACY_STORAGE_PREFIX}session_active`,
+  [LANGUAGE_KEY]: `${LEGACY_STORAGE_PREFIX}language`,
+  [SOUND_EFFECTS_KEY]: `${LEGACY_STORAGE_PREFIX}sound_effects`,
+};
+
+async function getMigratedItem(key: string): Promise<string | null> {
+  const value = await AsyncStorage.getItem(key);
+  if (value !== null) {
+    return value;
+  }
+
+  const legacyKey = LEGACY_STORAGE_KEYS[key];
+  if (!legacyKey) {
+    return null;
+  }
+
+  const legacyValue = await AsyncStorage.getItem(legacyKey);
+  if (legacyValue !== null) {
+    await AsyncStorage.setItem(key, legacyValue);
+  }
+
+  return legacyValue;
+}
 
 export async function getGameStats(): Promise<GameStats> {
   try {
-    const stats = await AsyncStorage.getItem(STATS_KEY);
+    const stats = await getMigratedItem(STATS_KEY);
     if (stats) {
       return JSON.parse(stats);
     }
@@ -83,7 +116,7 @@ export async function resetGameStats(): Promise<void> {
 
 export async function getTempUnit(): Promise<'C' | 'F'> {
   try {
-    const unit = await AsyncStorage.getItem(TEMP_UNIT_KEY);
+    const unit = await getMigratedItem(TEMP_UNIT_KEY);
     return (unit as 'C' | 'F') || 'C';
   } catch {
     return 'C';
@@ -96,7 +129,7 @@ export async function setTempUnit(unit: 'C' | 'F'): Promise<void> {
 
 export async function getDarkMode(): Promise<boolean> {
   try {
-    const darkMode = await AsyncStorage.getItem(DARK_MODE_KEY);
+    const darkMode = await getMigratedItem(DARK_MODE_KEY);
     return darkMode === 'true';
   } catch {
     return false;
@@ -109,7 +142,7 @@ export async function setDarkMode(enabled: boolean): Promise<void> {
 
 export async function getSessionActive(): Promise<boolean> {
   try {
-    const sessionActive = await AsyncStorage.getItem(SESSION_ACTIVE_KEY);
+    const sessionActive = await getMigratedItem(SESSION_ACTIVE_KEY);
     return sessionActive === 'true';
   } catch {
     return false;
@@ -118,6 +151,36 @@ export async function getSessionActive(): Promise<boolean> {
 
 export async function setSessionActive(active: boolean): Promise<void> {
   await AsyncStorage.setItem(SESSION_ACTIVE_KEY, active ? 'true' : 'false');
+}
+
+export async function getLanguage(): Promise<LanguageCode> {
+  try {
+    const language = await getMigratedItem(LANGUAGE_KEY);
+    if (language === 'ru' || language === 'fr' || language === 'de' || language === 'it' || language === 'es') {
+      return language;
+    }
+  } catch {
+    // Fall back to English when storage is unavailable.
+  }
+
+  return 'en';
+}
+
+export async function setLanguage(language: LanguageCode): Promise<void> {
+  await AsyncStorage.setItem(LANGUAGE_KEY, language);
+}
+
+export async function getSoundEffectsEnabled(): Promise<boolean> {
+  try {
+    const enabled = await getMigratedItem(SOUND_EFFECTS_KEY);
+    return enabled === null ? true : enabled === 'true';
+  } catch {
+    return true;
+  }
+}
+
+export async function setSoundEffectsEnabled(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(SOUND_EFFECTS_KEY, enabled ? 'true' : 'false');
 }
 
 export function celsiusToFahrenheit(celsius: number): number {

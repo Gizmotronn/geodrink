@@ -14,7 +14,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="theme-color" content="#1F4D7A" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="GeoDrink" />
+        <meta name="apple-mobile-web-app-title" content="Weathr" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <ScrollViewStyleReset />

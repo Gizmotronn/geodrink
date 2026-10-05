@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { SessionProvider } from '../contexts/SessionContext';
+import { LanguageProvider } from '../contexts/LanguageContext';
 
 function RootLayoutContent() {
   const { isDark } = useTheme();
@@ -18,6 +19,7 @@ function RootLayoutContent() {
         <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         <Stack.Screen name="party-setup" options={{ headerShown: false }} />
+        <Stack.Screen name="online-party" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </NavigationThemeProvider>
@@ -27,9 +29,11 @@ function RootLayoutContent() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <SessionProvider>
-        <RootLayoutContent />
-      </SessionProvider>
+      <LanguageProvider>
+        <SessionProvider>
+          <RootLayoutContent />
+        </SessionProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 };;

@@ -1,17 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Easing, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../components/themed-text';
 import { ThemedView } from '../components/themed-view';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSession } from '../contexts/SessionContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Colors } from '../constants/theme';
-import { CITIES, City } from '../data/cities';
+import { City } from '../data/cities';
 import { loadSounds, playCorrectSound, playWrongSound, unloadSounds } from '../services/audio';
 import { getCurrentTemperature } from '../services/weather';
+import { getBalancedRandomCities } from '../utils/city-selection';
 import { celsiusToFahrenheit, fahrenheitToCelsius, getTempUnit, updateGameStats } from '../utils/storage';
+import { evaluateTemperatureGuess, isCompleteTemperatureGuess, sanitizeTemperatureGuess, toggleMinusInGuess } from '../utils/temperature-guess';
+import { parsePartyConfiguration } from '../utils/party-configuration';
 import { getThemeStyles, toRgba } from '../utils/theme-colors';
 import { gameStyles } from './game.styles';
 
@@ -23,21 +27,27 @@ export default function GameScreen() {
   const router = useRouter();
   const { startSession } = useSession();
   const { isDark } = useTheme();
-  const { mode, playerCount: playerCountParam, names: namesParam } = useLocalSearchParams<{ mode: string, playerCount?: string, names?: string }>();
+  const { t } = useLanguage();
+  const { mode, playerCount: playerCountParam, names: namesParam } = useLocalSearchParams<{ mode?: string, playerCount?: string | string[], names?: string | string[] }>();
+  const partyConfiguration = parsePartyConfiguration(playerCountParam, namesParam);
+  const hasValidPartyConfiguration = mode !== 'party' || partyConfiguration !== null;
   const [cityData, setCityData] = useState<CityData | null>(null);
   const [userGuess, setUserGuess] = useState('');
   const [loading, setLoading] = useState(true);
   const [gameState, setGameState] = useState<'playing' | 'revealed' | 'roundComplete'>('playing');
   // Party mode state
-  const playerCount = mode === 'party' && playerCountParam ? parseInt(playerCountParam, 10) : 1;
-  const playerNames: string[] = mode === 'party' && namesParam ? JSON.parse(namesParam) : ['Player 1'];
+  const playerCount = partyConfiguration?.playerCount ?? 1;
+  const playerNames = partyConfiguration?.names ?? ['Player 1'];
   const totalCities = mode === 'party' ? 10 * playerCount : 10;
   const [currentCityIndex, setCurrentCityIndex] = useState(1);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0); // 0-based
   const [playerScores, setPlayerScores] = useState<number[]>(Array(playerCount).fill(0));
   const [score, setScore] = useState({ correct: 0, incorrect: 0 }); // legacy/classic
   const [tempUnit, setTempUnit] = useState<'C' | 'F'>('C');
+  const [lastGuessCorrect, setLastGuessCorrect] = useState<boolean | null>(null);
   const inputRef = useRef<TextInput>(null);
+  const submitLockRef = useRef(false);
+  const resultAnim = useRef(new Animated.Value(0)).current;
 
   const colors = isDark ? Colors.dark : Colors.light;
   const themeStyles = getThemeStyles(isDark);
@@ -49,7 +59,29 @@ export default function GameScreen() {
     startSession();
   }, [startSession]);
 
+  const loadTempUnit = useCallback(async () => {
+    const unit = await getTempUnit();
+    setTempUnit(unit);
+  }, []);
+
+  const initGame = useCallback(async () => {
+    await loadTempUnit();
+    const uniqueCities = getBalancedRandomCities(totalCities, playerCount);
+    const cities: CityData[] = [];
+    for (let i = 0; i < uniqueCities.length; i++) {
+      const city = uniqueCities[i];
+      const temperature = await getCurrentTemperature(city.lat, city.lon);
+      cities.push({ ...city, temperature: Math.round(temperature) });
+    }
+    setCityOrder(cities);
+  }, [loadTempUnit, playerCount, totalCities]);
+
   useEffect(() => {
+    if (!hasValidPartyConfiguration) {
+      router.replace('/party-setup');
+      return;
+    }
+
     const runInit = async () => {
       await initGame();
     };
@@ -58,7 +90,7 @@ export default function GameScreen() {
     return () => {
       unloadSounds();
     };
-  }, []);
+  }, [hasValidPartyConfiguration, initGame, router]);
 
   // Load the first city once cityOrder is populated
   useEffect(() => {
@@ -69,29 +101,33 @@ export default function GameScreen() {
     }
   }, [cityOrder, cityData, currentCityIndex, gameState]);
 
-  const getUniqueRandomCities = (count: number): City[] => {
-    const shuffled = [...CITIES].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
-  };
-
-  const initGame = async () => {
-    await loadTempUnit();
-    // Pre-generate unique cities for all modes
-    const uniqueCities = getUniqueRandomCities(totalCities);
-    const cities: CityData[] = [];
-    for (let i = 0; i < uniqueCities.length; i++) {
-      const city = uniqueCities[i];
-      const temperature = await getCurrentTemperature(city.lat, city.lon);
-      cities.push({ ...city, temperature: Math.round(temperature) });
+  useEffect(() => {
+    if (gameState !== 'revealed') {
+      resultAnim.setValue(0);
+      return;
     }
-    setCityOrder(cities);
-    // The useEffect will handle setting the first city
-  };
 
-  const loadTempUnit = async () => {
-    const unit = await getTempUnit();
-    setTempUnit(unit);
-  };
+    Animated.sequence([
+      Animated.timing(resultAnim, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(resultAnim, {
+        toValue: 0.92,
+        friction: 4,
+        tension: 90,
+        useNativeDriver: true,
+      }),
+      Animated.spring(resultAnim, {
+        toValue: 1,
+        friction: 5,
+        tension: 80,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [gameState, resultAnim]);
 
   const loadNewCity = async (cityIndex?: number) => {
     const indexToUse = cityIndex !== undefined ? cityIndex : currentCityIndex;
@@ -101,26 +137,29 @@ export default function GameScreen() {
     }
     setCityData(cityOrder[indexToUse - 1]);
     setGameState('playing');
+    setLastGuessCorrect(null);
+    submitLockRef.current = false;
     setUserGuess('');
     setLoading(false);
   };
 
   const handleSubmit = async () => {
-    if (!userGuess || !cityData) return;
+    if (!isCompleteTemperatureGuess(userGuess) || !cityData || gameState !== 'playing' || submitLockRef.current) return;
+
+    submitLockRef.current = true;
+    Keyboard.dismiss();
 
     const guess = parseFloat(userGuess);
     if (isNaN(guess)) {
-      Alert.alert('Invalid Input', 'Please enter a valid number');
+      submitLockRef.current = false;
+      Alert.alert(t('invalidInputTitle'), t('invalidInputMessage'));
       return;
     }
 
     const actualTempCelsius = cityData.temperature;
-    const guessTempCelsius = tempUnit === 'F' ? fahrenheitToCelsius(guess) : guess;
-    const differenceCelsius = Math.abs(guessTempCelsius - actualTempCelsius);
-    const threshold = tempUnit === 'F' ? (6 * 5/9) : 2;
-    const isCorrect = differenceCelsius <= threshold;
+    const { differenceCelsius, isCorrect } = evaluateTemperatureGuess(guess, actualTempCelsius, tempUnit);
 
-
+    setLastGuessCorrect(isCorrect);
 
     if (mode === 'party') {
       // Update current player's score
@@ -170,18 +209,6 @@ export default function GameScreen() {
     }
   };
 
-  const handleContinueRound = () => {
-    setScore({ correct: 0, incorrect: 0 });
-    setCurrentCityIndex(1);
-    setCurrentPlayerIndex(0);
-    setPlayerScores(Array(playerCount).fill(0));
-    setGameState('playing');
-    setCityData(null);
-    setUserGuess('');
-    // Load the first city for the new round
-    loadNewCity();
-  };
-
   const handleExitToHome = () => {
     router.push('/');
   };
@@ -202,30 +229,39 @@ export default function GameScreen() {
 
     if (mode === 'party') {
       if (isCorrect) {
-        return `🎉 Within ${tempUnit === 'F' ? '6°F' : '2°C'}! Everyone else drinks!`;
+        return t('withinParty', { threshold: tempUnit === 'F' ? '6°F' : '2°C' });
       } else {
-        return `😅 More than ${tempUnit === 'F' ? '6°F' : '2°C'} off. You drink!`;
+        return t('outsideParty', { threshold: tempUnit === 'F' ? '6°F' : '2°C' });
       }
     } else {
       if (isCorrect) {
-        return `✅ Correct! Within ${tempUnit === 'F' ? '6°F' : '2°C'}!`;
+        return t('correctWithin', { threshold: tempUnit === 'F' ? '6°F' : '2°C' });
       } else {
-        return `❌ Wrong by ${Math.round(differenceDisplay)}°${tempUnit}`;
+        return t('wrongBy', { difference: Math.round(differenceDisplay), unit: tempUnit });
       }
     }
+  };
+
+  const cleanGuessInput = (text: string) => {
+    setUserGuess(sanitizeTemperatureGuess(text));
+  };
+
+  const toggleMinus = () => {
+    setUserGuess(toggleMinusInGuess);
+    inputRef.current?.focus();
   };
 
   // Show current player in party mode
   const currentPlayerName = mode === 'party' ? playerNames[currentPlayerIndex] : undefined;
 
-  if (loading && !cityData) {
+  if (!hasValidPartyConfiguration || (loading && !cityData)) {
     const colors = isDark ? Colors.dark : Colors.light;
     return (
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <ThemedText style={styles.loadingText}>Loading city...</ThemedText>
+            <ThemedText style={styles.loadingText}>{t('loadingCity')}</ThemedText>
           </View>
         </SafeAreaView>
       </ThemedView>
@@ -243,14 +279,20 @@ export default function GameScreen() {
           >
             <View style={styles.completeContainer}>
               <Ionicons name="trophy" size={80} color={colors.chart2} />
-              <Text style={[styles.largeTitle, { color: colors.foreground }]}>Round Complete!</Text>
+              <Text style={[styles.largeTitle, { color: colors.foreground }]}>{t('roundComplete')}</Text>
               <View style={[styles.finalScoreCard, { backgroundColor: themeStyles.primaryBackgroundLight }]}>
-                <Text style={[styles.mediumText, { color: colors.foreground }]}>Final Score</Text>
+                <Text style={[styles.mediumText, { color: colors.foreground }]}>{t('finalScore')}</Text>
                 {mode === 'party' ? (
                   <View style={styles.scoreRow}>
                     {playerNames.map((name, idx) => (
-                      <View key={name} style={styles.scoreColumn}>
-                        <Text style={[styles.smallText, { color: colors.mutedForeground, fontWeight: '700' }]}>{name}</Text>
+                      <View key={`${name}-${idx}`} style={styles.scoreColumn}>
+                        <Text
+                          style={[styles.smallText, styles.scoreName, { color: colors.mutedForeground, fontWeight: '700' }]}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {name}
+                        </Text>
                         <Text style={[styles.largeNumber, { color: colors.secondary }]}>{playerScores[idx]}</Text>
                       </View>
                     ))}
@@ -260,24 +302,29 @@ export default function GameScreen() {
                     <View style={styles.scoreColumn}>
                       <Ionicons name="checkmark-circle" size={40} color={colors.chart3} />
                       <Text style={[styles.largeNumber, { color: colors.chart3 }]}>{score.correct}</Text>
-                      <Text style={[styles.smallText, { color: colors.mutedForeground }]}>Correct</Text>
+                      <Text style={[styles.smallText, { color: colors.mutedForeground }]}>{t('correct')}</Text>
                     </View>
                     <View style={styles.scoreColumn}>
                       <Ionicons name="close-circle" size={40} color={colors.destructive} />
                       <Text style={[styles.largeNumber, { color: colors.destructive }]}>{score.incorrect}</Text>
-                      <Text style={[styles.smallText, { color: colors.mutedForeground }]}>Wrong</Text>
+                      <Text style={[styles.smallText, { color: colors.mutedForeground }]}>{t('wrong')}</Text>
                     </View>
                   </View>
                 )}
                 {mode === 'party' ? null : (
                   <Text style={[styles.accuracyText, { color: colors.foreground }]}> 
-                    Accuracy: {Math.round((score.correct / totalCities) * 100)}%
+                    {t('accuracy')}: {Math.round((score.correct / totalCities) * 100)}%
                   </Text>
                 )}
               </View>
-              <Pressable style={styles.secondaryButton} onPress={handleExitToHome}>
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={handleExitToHome}
+                accessibilityRole="button"
+                accessibilityLabel={t('exitToHome')}
+              >
                 <Ionicons name="home" size={24} color={colors.primary} />
-                <Text style={[styles.buttonText, { color: colors.primary }]}>Exit to Home</Text>
+                <Text style={[styles.buttonText, { color: colors.primary }]}>{t('exitToHome')}</Text>
               </Pressable>
             </View>
           </ScrollView>
@@ -289,21 +336,25 @@ export default function GameScreen() {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          automaticallyAdjustKeyboardInsets={true}
-          contentInsetAdjustmentBehavior="automatic"
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoidingView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+            contentInsetAdjustmentBehavior="automatic"
+          >
           {/* Header */}
           <View style={styles.topBar}>
-            <Pressable onPress={() => router.back()} style={styles.backButton}>
+            <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel={t('back')}>
               <Ionicons name="arrow-back" size={28} color={isDark ? Colors.dark.primary : Colors.light.primary} />
             </Pressable>
             <Text style={[styles.headerTitle, { color: colors.foreground }]}> 
-              {mode === 'party' ? 'Party Mode' : 'Classic Mode'}
+              {mode === 'party' ? t('partyMode') : t('classicMode')}
             </Text>
             <View style={{ width: 44 }} />
           </View>
@@ -312,7 +363,7 @@ export default function GameScreen() {
           {mode === 'party' && (
             <View style={{ alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ fontSize: 20, fontWeight: '700', color: colors.secondary }}>
-                {currentPlayerName}&apos;s turn
+                {t('currentPlayerTurn', { name: currentPlayerName || '' })}
               </Text>
               <Text style={{ fontSize: 15, color: '#888', marginTop: 2 }}>
                 ({currentCityIndex} / {totalCities})
@@ -336,7 +387,7 @@ export default function GameScreen() {
           {/* Question */}
           <View style={styles.questionSection}>
             <Text style={[styles.questionText, { color: colors.foreground }]}> 
-              What is the current temperature?
+              {t('currentTemperatureQuestion')}
             </Text>
             {/* No timer or bonus UI */}
           </View>
@@ -345,95 +396,93 @@ export default function GameScreen() {
           {gameState === 'playing' ? (
             <View style={styles.inputSection}>
               <View style={styles.inputRow}>
+                <Pressable
+                  style={[
+                    styles.minusButton,
+                    userGuess.startsWith('-') && styles.minusButtonActive,
+                    {
+                      backgroundColor: userGuess.startsWith('-') ? toRgba(colors.primary, 0.14) : toRgba(colors.muted, 0.5),
+                      borderColor: userGuess.startsWith('-') ? colors.primary : colors.border,
+                    },
+                  ]}
+                  onPress={toggleMinus}
+                  testID="minus-button"
+                  accessibilityRole="button"
+                  accessibilityLabel={userGuess.startsWith('-') ? t('removeMinus') : t('addMinus')}
+                >
+                  <Text style={[styles.minusButtonText, { color: colors.foreground }]}>+/-</Text>
+                </Pressable>
                 <TextInput
                   ref={inputRef}
                   style={[styles.temperatureInput, { color: colors.foreground, borderBottomColor: colors.primary }]}
                   value={userGuess}
-                  onChangeText={(text) => {
-                    // Allow negative sign, digits, and handle proper negative number formatting
-                    let filtered = text.replace(/[^0-9-]/g, '');
-                    
-                    // Handle negative sign rules
-                    if (filtered.includes('-')) {
-                      // Only allow negative sign at the beginning
-                      const parts = filtered.split('-');
-                      if (parts[0] === '' && parts.length === 2) {
-                        // Valid negative number format: -123
-                        filtered = '-' + parts[1].replace(/\D/g, '');
-                      } else {
-                        // Remove all negative signs and keep only digits
-                        filtered = filtered.replace(/-/g, '');
-                      }
-                    }
-                    
-                    // Set the cleaned value
-                    setUserGuess(filtered);
-                  }}
-                  keyboardType="number-pad"
+                  onChangeText={cleanGuessInput}
+                  keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'decimal-pad'}
                   placeholder="--"
                   placeholderTextColor={colors.mutedForeground}
-                  autoFocus
                   returnKeyType="done"
-                  onSubmitEditing={() => {
-                    inputRef.current?.blur();
-                    if (userGuess) {
-                      handleSubmit();
-                    }
-                  }}
+                  blurOnSubmit
+                  onSubmitEditing={handleSubmit}
+                  testID="temperature-input"
+                  accessibilityLabel={t('currentTemperatureQuestion')}
                 />
                 <Text style={[styles.unitText, { color: colors.mutedForeground }]}> 
                   °{tempUnit}
                 </Text>
               </View>
-              
-              {/* Custom minus button for iOS since numeric keyboard doesn't have one */}
-              <Pressable 
-                style={[styles.minusButton, { backgroundColor: toRgba(colors.muted, 0.5) }]}
-                onPress={() => {
-                  if (userGuess.startsWith('-')) {
-                    // Remove minus sign
-                    setUserGuess(userGuess.substring(1));
-                  } else if (userGuess) {
-                    // Add minus sign
-                    setUserGuess('-' + userGuess);
-                  } else {
-                    // Start with minus
-                    setUserGuess('-');
-                  }
-                }}
-              >
-                <Text style={[styles.minusButtonText, { color: colors.foreground }]}>
-                  {userGuess.startsWith('-') ? '✕ Remove Minus' : '➖ Add Minus'}
-                </Text>
-              </Pressable>
 
               {/* Submit button moved here so it's always visible */}
               <Pressable
-                style={[styles.submitButton, !userGuess && styles.disabledButton, { backgroundColor: colors.primary }]}
-                onPress={() => {
-                  inputRef.current?.blur();
-                  handleSubmit();
-                }}
-                disabled={!userGuess}
+                style={[styles.submitButton, !isCompleteTemperatureGuess(userGuess) && styles.disabledButton, { backgroundColor: colors.primary }]}
+                onPress={handleSubmit}
+                disabled={!isCompleteTemperatureGuess(userGuess)}
+                testID="submit-guess-button"
+                accessibilityRole="button"
+                accessibilityLabel={t('submitGuess')}
               >
-                <Text style={[styles.submitButtonText, { color: colors.primaryForeground }]}>Submit Guess</Text>
+                <Text style={[styles.submitButtonText, { color: colors.primaryForeground }]}>{t('submitGuess')}</Text>
               </Pressable>
             </View>
           ) : (
             <View style={styles.resultSection}>
+              <Animated.View
+                style={[
+                  styles.resultBadge,
+                  {
+                    backgroundColor: toRgba(lastGuessCorrect ? colors.chart3 : colors.destructive, 0.14),
+                    transform: [
+                      {
+                        scale: resultAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.7, 1],
+                        }),
+                      },
+                    ],
+                    opacity: resultAnim,
+                  },
+                ]}
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+              >
+                <Ionicons
+                  name={lastGuessCorrect ? 'checkmark-circle' : 'close-circle'}
+                  size={58}
+                  color={lastGuessCorrect ? colors.chart3 : colors.destructive}
+                />
+              </Animated.View>
               <Text style={[styles.resultText, { color: colors.foreground }]}> 
                 {getResultMessage()}
               </Text>
               <View style={styles.comparisonCard}>
                 <View style={styles.comparisonItem}>
-                  <Text style={[styles.smallText, { color: colors.mutedForeground }]}>Your Guess</Text>
+                  <Text style={[styles.smallText, { color: colors.mutedForeground }]}>{t('yourGuess')}</Text>
                   <Text style={[styles.tempNumber, { color: colors.foreground }]}>
                     {userGuess}°{tempUnit}
                   </Text>
                 </View>
                 <Ionicons name="arrow-forward" size={28} color={colors.primary} />
                 <View style={styles.comparisonItem}>
-                  <Text style={[styles.smallText, { color: colors.mutedForeground }]}>Actual</Text>
+                  <Text style={[styles.smallText, { color: colors.mutedForeground }]}>{t('actual')}</Text>
                   <Text style={[styles.tempNumber, { color: colors.foreground }]}>
                     {tempUnit === 'C' 
                       ? cityData?.temperature 
@@ -446,13 +495,20 @@ export default function GameScreen() {
 
           {/* Action Button - only for non-playing states */}
           {gameState !== 'playing' && (
-            // Only show Next City if not at the end in classic mode
-            (mode === 'classic' && currentCityIndex >= totalCities) ? null : (
-              <Pressable style={[styles.primaryButton, { backgroundColor: colors.primary }]} onPress={handleNextCity}>
+            (
+              <Pressable
+                style={[styles.primaryButton, { backgroundColor: colors.primary }]}
+                onPress={handleNextCity}
+                testID="next-city-button"
+                accessibilityRole="button"
+                accessibilityLabel={mode === 'classic' && currentCityIndex >= totalCities ? t('viewResults') : t('nextCity')}
+              >
                 <Text style={[styles.buttonText, { color: colors.primaryForeground }]}>
-                  {mode === 'classic' && currentCityIndex < totalCities
-                    ? `Next City (${currentCityIndex}/${totalCities})`
-                    : 'Next City'}
+                  {mode === 'classic' && currentCityIndex >= totalCities
+                    ? t('viewResults')
+                    : mode === 'classic' && currentCityIndex < totalCities
+                    ? t('nextCityProgress', { current: currentCityIndex, total: totalCities })
+                    : t('nextCity')}
                 </Text>
                 <Ionicons name="arrow-forward" size={20} color={colors.primaryForeground} />
               </Pressable>
@@ -463,24 +519,30 @@ export default function GameScreen() {
           <View style={[styles.scoreCard, { backgroundColor: themeStyles.mutedBackground }]}>
             {mode === 'party' ? (
               playerNames.map((name, idx) => (
-                <View key={name} style={styles.scoreItem}>
-                  <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>{name}</Text>
+                <View key={`${name}-${idx}`} style={styles.scoreItem}>
+                  <Text
+                    style={[styles.smallText, styles.scoreName, { color: isDark ? '#AAA' : '#666' }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {name}
+                  </Text>
                   <Text style={[styles.scoreNumber, { color: colors.primary }]}>{playerScores[idx]}</Text>
                 </View>
               ))
             ) : (
               <>
                 <View style={styles.scoreItem}>
-                  <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Correct</Text>
+                  <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>{t('correct')}</Text>
                   <Text style={[styles.scoreNumber, { color: colors.primary }]}>{score.correct}</Text>
                 </View>
                 <View style={styles.scoreItem}>
-                  <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Wrong</Text>
+                  <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>{t('wrong')}</Text>
                   <Text style={styles.scoreNumber}>{score.incorrect}</Text>
                 </View>
                 {mode === 'classic' && (
                   <View style={styles.scoreItem}>
-                    <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>Progress</Text>
+                    <Text style={[styles.smallText, { color: isDark ? '#AAA' : '#666' }]}>{t('progress')}</Text>
                     <Text style={styles.scoreNumber}>{currentCityIndex}/{totalCities}</Text>
                   </View>
                 )}
@@ -488,7 +550,8 @@ export default function GameScreen() {
             )}
           </View>
 
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </ThemedView>
   );

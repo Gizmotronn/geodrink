@@ -4,9 +4,14 @@ export const gameStyles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 100,
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 28,
   },
   loadingContainer: {
     flex: 1,
@@ -21,7 +26,7 @@ export const gameStyles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   backButton: {
     padding: 8,
@@ -33,25 +38,25 @@ export const gameStyles = StyleSheet.create({
   },
   cityCard: {
     alignItems: 'center',
-    padding: 24,
+    padding: 20,
     borderRadius: 20,
-    marginBottom: 24,
+    marginBottom: 18,
     // backgroundColor set dynamically via theme colors
   },
   cityTitle: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '800',
     marginTop: 12,
     textAlign: 'center',
   },
   countryText: {
-    fontSize: 18,
+    fontSize: 17,
     marginTop: 6,
     textAlign: 'center',
   },
   questionSection: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 18,
   },
   questionText: {
     fontSize: 20,
@@ -61,38 +66,45 @@ export const gameStyles = StyleSheet.create({
   },
   inputSection: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 18,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 12,
+    width: '100%',
   },
   temperatureInput: {
-    fontSize: 48,
+    fontSize: 44,
     fontWeight: '800',
     textAlign: 'center',
     borderBottomWidth: 4,
-    minWidth: 140,
-    paddingVertical: 12,
+    width: 132,
+    flexGrow: 0,
+    flexShrink: 0,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     // borderBottomColor set dynamically via theme colors
   },
   minusButton: {
-    marginTop: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 12,
+    minWidth: 60,
+    height: 52,
+    borderRadius: 14,
     alignItems: 'center',
-    minWidth: 180,
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  minusButtonActive: {
+    opacity: 0.85,
   },
   minusButtonText: {
     fontSize: 18,
     fontWeight: '700',
   },
   submitButton: {
-    marginTop: 24,
-    paddingVertical: 18,
+    marginTop: 18,
+    paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: 16,
     alignItems: 'center',
@@ -105,12 +117,20 @@ export const gameStyles = StyleSheet.create({
     // color set dynamically via theme colors
   },
   unitText: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '600',
   },
   resultSection: {
     alignItems: 'center',
     marginBottom: 24,
+  },
+  resultBadge: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   resultText: {
     fontSize: 18,
@@ -169,13 +189,22 @@ export const gameStyles = StyleSheet.create({
   scoreCard: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    padding: 20,
+    flexWrap: 'wrap',
+    gap: 10,
+    padding: 16,
     borderRadius: 16,
-    marginTop: 8,
+    marginTop: 2,
     // backgroundColor set dynamically via theme colors
   },
   scoreItem: {
     alignItems: 'center',
+    minWidth: 74,
+    flexGrow: 1,
+    flexBasis: 74,
+  },
+  scoreName: {
+    maxWidth: 92,
+    textAlign: 'center',
   },
   scoreNumber: {
     fontSize: 28,
@@ -216,11 +245,14 @@ export const gameStyles = StyleSheet.create({
   },
   scoreRow: {
     flexDirection: 'row',
-    gap: 40,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 16,
     marginVertical: 20,
   },
   scoreColumn: {
     alignItems: 'center',
+    minWidth: 82,
   },
   accuracyText: {
     fontSize: 20,

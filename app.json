@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "GeoDrink",
-    "slug": "geodrink",
+    "name": "Weathr",
+    "slug": "weathr",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "geodrink",
+    "scheme": "weathr",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.liamar.geodrink"
+      "bundleIdentifier": "com.liamar.weathr"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,8 +25,8 @@
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png",
-      "name": "GeoDrink",
-      "shortName": "GeoDrink",
+      "name": "Weathr",
+      "shortName": "Weathr",
       "themeColor": "#1F4D7A",
       "backgroundColor": "#E6F4FE",
       "display": "standalone"

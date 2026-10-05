@@ -1,17 +1,30 @@
-import { Audio } from 'expo-av';
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
+import { getSoundEffectsEnabled } from '../utils/storage';
 
 let correctSound: Audio.Sound | null = null;
 let wrongSound: Audio.Sound | null = null;
 
 export async function loadSounds() {
   try {
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+      playsInSilentModeIOS: false,
+      staysActiveInBackground: false,
+      interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+      shouldDuckAndroid: false,
+      playThroughEarpieceAndroid: false,
+    });
+
     const { sound: correct } = await Audio.Sound.createAsync(
-      require('../assets/sounds/correct.mp3')
+      require('../assets/sounds/correct.mp3'),
+      { volume: 0.45 }
     );
     correctSound = correct;
 
     const { sound: wrong } = await Audio.Sound.createAsync(
-      require('../assets/sounds/wrong.mp3')
+      require('../assets/sounds/wrong.mp3'),
+      { volume: 0.45 }
     );
     wrongSound = wrong;
   } catch (error) {
@@ -21,7 +34,7 @@ export async function loadSounds() {
 
 export async function playCorrectSound() {
   try {
-    if (correctSound) {
+    if (correctSound && await getSoundEffectsEnabled()) {
       await correctSound.replayAsync();
     }
   } catch (error) {
@@ -31,7 +44,7 @@ export async function playCorrectSound() {
 
 export async function playWrongSound() {
   try {
-    if (wrongSound) {
+    if (wrongSound && await getSoundEffectsEnabled()) {
       await wrongSound.replayAsync();
     }
   } catch (error) {
